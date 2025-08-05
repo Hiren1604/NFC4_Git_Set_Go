@@ -6,6 +6,10 @@ import { ResidentDashboard } from "@/components/dashboard/ResidentDashboard";
 import { TechnicianDashboard } from "@/components/dashboard/TechnicianDashboard";
 import AllIssuesPage from "./AllIssuesPage";
 import ResidentsPage from "./ResidentsPage";
+import ReportIssuePage from "./ReportIssuePage";
+import MyIssuesPage from "./MyIssuesPage";
+import NotificationsPage from "./NotificationsPage";
+import AIBillingAnalysisPage from "./AIBillingAnalysisPage";
 
 type UserRole = "resident" | "admin" | "technician";
 
@@ -35,9 +39,10 @@ export default function DashboardPage({ user, onLogout }: DashboardPageProps) {
     if (activeItem === "analytics") return <div className="p-6"><h1 className="text-2xl font-bold">Analytics</h1><p>Analytics page coming soon...</p></div>;
     if (activeItem === "ai-agents") return <AdminDashboard defaultTab="ai-agents" />;
     if (activeItem === "ai-issues") return <AdminDashboard defaultTab="ai-issues" />;
-    if (activeItem === "my-issues") return <div className="p-6"><h1 className="text-2xl font-bold">My Issues</h1><p>My issues page coming soon...</p></div>;
-    if (activeItem === "report-issue") return <div className="p-6"><h1 className="text-2xl font-bold">Report Issue</h1><p>Report issue page coming soon...</p></div>;
-    if (activeItem === "notifications") return <div className="p-6"><h1 className="text-2xl font-bold">Notifications</h1><p>Notifications page coming soon...</p></div>;
+    if (activeItem === "my-issues") return <MyIssuesPage />;
+    if (activeItem === "report-issue") return <ReportIssuePage />;
+    if (activeItem === "notifications") return <NotificationsPage />;
+    if (activeItem === "ai-billing") return <AIBillingAnalysisPage />;
     if (activeItem === "help") return <div className="p-6"><h1 className="text-2xl font-bold">Help & FAQ</h1><p>Help page coming soon...</p></div>;
     if (activeItem === "assigned-tasks") return <div className="p-6"><h1 className="text-2xl font-bold">My Tasks</h1><p>Assigned tasks page coming soon...</p></div>;
     if (activeItem === "availability") return <div className="p-6"><h1 className="text-2xl font-bold">Availability</h1><p>Availability management page coming soon...</p></div>;

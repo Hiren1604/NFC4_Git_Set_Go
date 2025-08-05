@@ -112,26 +112,36 @@ issueSchema.virtual('isOverdue').get(function() {
 });
 
 // Method to add timeline entry
-issueSchema.methods.addTimelineEntry = function(status, message, updatedBy) {
-  this.timeline.push({
-    status,
-    message,
-    updatedBy,
-    timestamp: new Date()
-  });
-  return this.save();
+issueSchema.methods.addTimelineEntry = async function(status, message, updatedBy) {
+  try {
+    this.timeline.push({
+      status,
+      message,
+      updatedBy,
+      timestamp: new Date()
+    });
+    return await this.save();
+  } catch (error) {
+    console.error('Error adding timeline entry:', error);
+    throw error;
+  }
 };
 
 // Method to update status
-issueSchema.methods.updateStatus = function(newStatus, message, updatedBy) {
-  this.status = newStatus;
-  this.addTimelineEntry(newStatus, message, updatedBy);
-  
-  if (newStatus === 'resolved') {
-    this.actualCompletion = new Date();
+issueSchema.methods.updateStatus = async function(newStatus, message, updatedBy) {
+  try {
+    this.status = newStatus;
+    await this.addTimelineEntry(newStatus, message, updatedBy);
+    
+    if (newStatus === 'resolved') {
+      this.actualCompletion = new Date();
+    }
+    
+    return await this.save();
+  } catch (error) {
+    console.error('Error updating status:', error);
+    throw error;
   }
-  
-  return this.save();
 };
 
 module.exports = mongoose.model('Issue', issueSchema); 

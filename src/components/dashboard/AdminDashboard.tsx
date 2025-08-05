@@ -150,6 +150,14 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
             <Bot className="h-4 w-4" />
             AI Insights
           </Button>
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
         </div>
       </div>
 

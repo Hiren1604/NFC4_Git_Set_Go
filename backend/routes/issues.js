@@ -93,7 +93,7 @@ router.post('/', protect, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { title, description, category, priority, location, photos, isEmergency, emergencyType } = req.body;
+    const { title, description, category, priority, location, photos, isEmergency, emergencyType, aiSuggestions } = req.body;
 
     // Create issue
     const issue = await Issue.create({
@@ -109,11 +109,17 @@ router.post('/', protect, [
       },
       photos: photos || [],
       isEmergency: isEmergency || false,
-      emergencyType: isEmergency ? emergencyType : undefined
+      emergencyType: isEmergency ? emergencyType : undefined,
+      aiSuggestions: aiSuggestions || undefined
     });
 
     // Add initial timeline entry
-    await issue.addTimelineEntry('reported', 'Issue reported', req.user._id);
+    try {
+      await issue.addTimelineEntry('reported', 'Issue reported', req.user._id);
+    } catch (timelineError) {
+      console.error('Error adding timeline entry:', timelineError);
+      // Continue without timeline entry if it fails
+    }
 
     // Populate the created issue
     const populatedIssue = await Issue.findById(issue._id)
@@ -154,13 +160,23 @@ router.put('/:id', protect, async (req, res) => {
 
     // Handle status change
     if (status && status !== issue.status) {
-      await issue.updateStatus(status, `Status updated to ${status}`, req.user._id);
+      try {
+        await issue.updateStatus(status, `Status updated to ${status}`, req.user._id);
+      } catch (timelineError) {
+        console.error('Error updating status:', timelineError);
+        // Continue without timeline entry if it fails
+      }
     }
 
     // Handle assignment
     if (assignedTo && assignedTo !== issue.assignedTo?.toString()) {
       issue.assignedTo = assignedTo;
-      await issue.addTimelineEntry('assigned', `Assigned to technician`, req.user._id);
+      try {
+        await issue.addTimelineEntry('assigned', `Assigned to technician`, req.user._id);
+      } catch (timelineError) {
+        console.error('Error adding timeline entry:', timelineError);
+        // Continue without timeline entry if it fails
+      }
     }
 
     const updatedIssue = await issue.save();

@@ -49,6 +49,7 @@ const navigationItems = {
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "ai-agents", label: "AI Agents", icon: Bot, badge: "Active" },
     { id: "ai-issues", label: "AI Issues", icon: Bot },
+    { id: "ai-billing", label: "AI Billing Analysis", icon: Bot, badge: "3" },
   ],
   technician: [
     { id: "dashboard", label: "Dashboard", icon: Home },

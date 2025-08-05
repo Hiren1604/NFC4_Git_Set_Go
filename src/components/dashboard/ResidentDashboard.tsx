@@ -109,19 +109,21 @@ export function ResidentDashboard() {
     }
   };
 
-  // Mock data
+  // Mock data with AI-determined priorities
   const complaints = [
     {
       id: 1,
       title: "Water leakage in bathroom",
-      description: "Severe water leakage from the ceiling in master bathroom",
+      description: "Severe water leakage from the ceiling in master bathroom, causing damage to walls and floor",
       status: "in-progress",
-      priority: "high",
+      priority: "urgent", // AI determined
+      aiPriority: "urgent",
+      aiReason: "Water damage can cause structural issues and mold growth",
       category: "plumbing",
       date: "2024-01-10",
       assignedTo: "John Plumber",
       updates: [
-        { date: "2024-01-10", message: "Issue reported", status: "reported" },
+        { date: "2024-01-10", message: "Issue reported and AI assigned urgent priority", status: "reported" },
         { date: "2024-01-11", message: "Technician assigned", status: "assigned" },
         { date: "2024-01-12", message: "Work in progress", status: "in-progress" },
       ],
@@ -130,14 +132,16 @@ export function ResidentDashboard() {
     {
       id: 2,
       title: "Elevator not working",
-      description: "Elevator stuck between 3rd and 4th floor",
+      description: "Elevator stuck between 3rd and 4th floor, residents trapped",
       status: "resolved",
-      priority: "urgent",
+      priority: "urgent", // AI determined
+      aiPriority: "urgent",
+      aiReason: "Safety issue with residents potentially trapped",
       category: "electrical",
       date: "2024-01-08",
       assignedTo: "Mike Technician",
       updates: [
-        { date: "2024-01-08", message: "Emergency reported", status: "reported" },
+        { date: "2024-01-08", message: "Emergency reported - AI flagged as urgent safety issue", status: "reported" },
         { date: "2024-01-08", message: "Technician arrived", status: "assigned" },
         { date: "2024-01-08", message: "Issue resolved", status: "resolved" },
       ],
@@ -146,14 +150,16 @@ export function ResidentDashboard() {
     {
       id: 3,
       title: "Broken window lock",
-      description: "Window lock in living room is broken",
+      description: "Window lock in living room is broken, security concern",
       status: "pending",
-      priority: "medium",
+      priority: "medium", // AI determined
+      aiPriority: "medium",
+      aiReason: "Security concern but not immediately dangerous",
       category: "carpentry",
       date: "2024-01-15",
       assignedTo: "Pending",
       updates: [
-        { date: "2024-01-15", message: "Issue reported", status: "reported" },
+        { date: "2024-01-15", message: "Issue reported - AI assigned medium priority", status: "reported" },
       ],
       photo: "/placeholder.svg"
     },
@@ -194,7 +200,13 @@ export function ResidentDashboard() {
       photo: "/placeholder.svg",
       time: "2024-01-10 14:30",
       status: "pending",
-      items: "Package for Flat A-501"
+      items: "Package for Flat A-501",
+      technician: {
+        name: "Security Guard",
+        phone: "+91 98765 43213",
+        shift: "Day Shift",
+        location: "Main Gate"
+      }
     },
     {
       id: 2,
@@ -203,15 +215,73 @@ export function ResidentDashboard() {
       photo: "/placeholder.svg",
       time: "2024-01-09 18:45",
       status: "approved",
-      items: "Visiting Flat A-501"
+      items: "Visiting Flat A-501",
+      technician: {
+        name: "Security Guard",
+        phone: "+91 98765 43213",
+        shift: "Day Shift",
+        location: "Main Gate"
+      }
     },
   ];
 
   const maintenanceServices = [
-    { name: "Plumber", icon: Wrench, available: 3, nextSlot: "2PM Today", rate: "₹500/hour" },
-    { name: "Electrician", icon: AlertTriangle, available: 2, nextSlot: "4PM Today", rate: "₹600/hour" },
-    { name: "Carpenter", icon: Wrench, available: 1, nextSlot: "10AM Tomorrow", rate: "₹400/hour" },
-    { name: "Painter", icon: Wrench, available: 0, nextSlot: "9AM Monday", rate: "₹300/hour" },
+    { 
+      name: "Plumber", 
+      icon: Wrench, 
+      available: 3, 
+      nextSlot: "2PM Today", 
+      rate: "₹500/hour",
+      technician: {
+        name: "John Plumber",
+        phone: "+91 98765 43210",
+        rating: 4.8,
+        experience: "8 years",
+        specialization: "Plumbing"
+      }
+    },
+    { 
+      name: "Electrician", 
+      icon: AlertTriangle, 
+      available: 2, 
+      nextSlot: "4PM Today", 
+      rate: "₹600/hour",
+      technician: {
+        name: "Mike Technician",
+        phone: "+91 98765 43211",
+        rating: 4.9,
+        experience: "12 years",
+        specialization: "Electrical"
+      }
+    },
+    { 
+      name: "Carpenter", 
+      icon: Wrench, 
+      available: 1, 
+      nextSlot: "10AM Tomorrow", 
+      rate: "₹400/hour",
+      technician: {
+        name: "David Carpenter",
+        phone: "+91 98765 43214",
+        rating: 4.6,
+        experience: "6 years",
+        specialization: "Carpentry"
+      }
+    },
+    { 
+      name: "Painter", 
+      icon: Wrench, 
+      available: 0, 
+      nextSlot: "9AM Monday", 
+      rate: "₹300/hour",
+      technician: {
+        name: "Sarah Painter",
+        phone: "+91 98765 43215",
+        rating: 4.7,
+        experience: "5 years",
+        specialization: "Painting"
+      }
+    },
   ];
 
   const timeSlots = [
@@ -317,10 +387,9 @@ export function ResidentDashboard() {
         <TabsContent value="complaints" className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">My Complaints</h2>
-            <Button onClick={() => setShowComplaintModal(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Raise Complaint
-            </Button>
+            <div className="text-sm text-muted-foreground">
+              Issues are prioritized by AI agents for optimal resolution
+            </div>
           </div>
 
           {/* Filters */}
@@ -380,8 +449,25 @@ export function ResidentDashboard() {
                           <Badge variant="outline" className={getPriorityColor(complaint.priority)}>
                             {complaint.priority}
                           </Badge>
+                          {complaint.aiPriority && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                              <Bot className="h-3 w-3 mr-1" />
+                              AI Priority
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-muted-foreground mb-2">{complaint.description}</p>
+                        
+                        {/* AI Analysis */}
+                        {complaint.aiReason && (
+                          <Alert className="mb-3">
+                            <Bot className="h-4 w-4" />
+                            <AlertDescription>
+                              <strong>AI Analysis:</strong> {complaint.aiReason}
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                        
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span>Assigned to: {complaint.assignedTo}</span>
                           <span>Date: {complaint.date}</span>
@@ -494,6 +580,21 @@ export function ResidentDashboard() {
                       <h3 className="font-semibold text-lg">{alert.visitor}</h3>
                       <p className="text-muted-foreground">{alert.items}</p>
                       <p className="text-sm text-muted-foreground">{alert.time}</p>
+                      
+                      {/* Technician Info */}
+                      {alert.technician && (
+                        <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
+                          <div className="flex items-center gap-2 mb-1">
+                            <User className="h-3 w-3" />
+                            <span className="font-medium">{alert.technician.name}</span>
+                          </div>
+                          <div className="space-y-1 text-muted-foreground">
+                            <div>Phone: {alert.technician.phone}</div>
+                            <div>Shift: {alert.technician.shift}</div>
+                            <div>Location: {alert.technician.location}</div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       {alert.status === "pending" ? (
@@ -548,9 +649,23 @@ export function ResidentDashboard() {
                   <p className="text-xs font-medium mb-2">
                     Next: {service.nextSlot}
                   </p>
-                  <p className="text-xs text-muted-foreground mb-3">
+                  <p className="text-xs text-muted-foreground mb-2">
                     {service.rate}
                   </p>
+                  
+                  {/* Technician Info */}
+                  {service.technician && (
+                    <div className="text-xs text-muted-foreground mb-3">
+                      <div className="flex items-center gap-1 mb-1">
+                        <User className="h-3 w-3" />
+                        <span className="font-medium">{service.technician.name}</span>
+                      </div>
+                      <div className="space-y-1">
+                        <div>⭐ {service.technician.rating}</div>
+                        <div>{service.technician.experience}</div>
+                      </div>
+                    </div>
+                  )}
                   <Button 
                     size="sm" 
                     variant={service.available > 0 ? "default" : "secondary"}

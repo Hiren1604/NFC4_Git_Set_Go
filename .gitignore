@@ -24,4 +24,7 @@ dist-ssr
 *.sw?
 
 
-.env
+backend/.env
+ai-agents/.env
+
+ai-agents/venv/
