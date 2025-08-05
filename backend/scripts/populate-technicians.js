@@ -5,7 +5,7 @@ require('dotenv').config();
 async function populateTechnicians() {
   try {
     // Connect to MongoDB
-    const mongoURI = process.env.MONGODB_URI || 'mongodb+srv://waghelahiren16:2k5TVOdYVCy4EFJm@cluster0.fkkhdpx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/resident_assist';
     await mongoose.connect(mongoURI);
     console.log('✅ Connected to MongoDB');
 

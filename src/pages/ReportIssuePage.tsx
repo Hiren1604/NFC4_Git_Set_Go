@@ -32,12 +32,15 @@ export default function ReportIssuePage() {
     location: "",
     contactPhone: "",
     contactEmail: "",
+    isEmergency: false,
+    emergencyType: "",
   });
   const [aiSuggestion, setAiSuggestion] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submittedIssue, setSubmittedIssue] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<any>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -65,35 +68,29 @@ export default function ReportIssuePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setError(null);
-    
+    setError('');
+
     try {
-      // Get auth token from localStorage
       const token = localStorage.getItem('token');
       if (!token) {
-        throw new Error('Authentication required');
+        throw new Error('No authentication token found');
       }
 
-      // Prepare issue data
       const issueData = {
         title: formData.title,
         description: formData.description,
         category: formData.category,
         priority: formData.priority,
-        location: {
-          area: formData.location
-        },
-        aiSuggestions: aiSuggestion ? {
-          category: aiSuggestion.category,
-          priority: aiSuggestion.priority,
-          estimatedTime: aiSuggestion.estimatedTime,
-          confidence: 0.85
-        } : undefined
+        location: formData.location,
+        contactPhone: formData.contactPhone,
+        contactEmail: formData.contactEmail,
+        isEmergency: formData.isEmergency,
+        emergencyType: formData.emergencyType,
+        aiSuggestions: aiSuggestion
       };
 
       console.log('Submitting issue data:', issueData);
 
-      // Call backend API
       const response = await fetch('/api/issues', {
         method: 'POST',
         headers: {
@@ -120,10 +117,20 @@ export default function ReportIssuePage() {
         throw new Error(errorMessage);
       }
 
-      const savedIssue = await response.json();
-      console.log('Saved issue:', savedIssue);
+      const responseData = await response.json();
+      console.log('Response data:', responseData);
+      
+      // Handle new response format with notification data
+      const savedIssue = responseData.issue || responseData;
+      const notification = responseData.notification;
+      
       setSubmittedIssue(savedIssue);
       setSubmitted(true);
+      
+      // If there's a notification from AI agent, show it
+      if (notification) {
+        setNotification(notification);
+      }
     } catch (error) {
       console.error('Error submitting issue:', error);
       
@@ -152,8 +159,61 @@ export default function ReportIssuePage() {
           <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
           <h1 className="text-2xl font-bold mb-2">Issue Reported Successfully!</h1>
           <p className="text-muted-foreground mb-6">
-            Your issue has been submitted and assigned a priority level. Our team will get back to you soon.
+            Your issue has been submitted and our AI has automatically assigned a technician.
           </p>
+          
+          {/* AI Notification Section */}
+          {notification && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Bot className="h-5 w-5 text-blue-600" />
+                <h3 className="font-semibold text-blue-800">AI Assignment Notification</h3>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-white rounded-lg p-4 border border-blue-100">
+                  <h4 className="font-medium text-blue-900 mb-2">{notification.title}</h4>
+                  <p className="text-blue-700 text-sm mb-3">{notification.message}</p>
+                  
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-blue-600 font-medium">Technician:</span>
+                      <p className="text-blue-800">{notification.technician?.name}</p>
+                    </div>
+                    <div>
+                      <span className="text-blue-600 font-medium">Skills:</span>
+                      <p className="text-blue-800">{notification.technician?.skills?.join(', ')}</p>
+                    </div>
+                    <div>
+                      <span className="text-blue-600 font-medium">Rate:</span>
+                      <p className="text-blue-800">₹{notification.technician?.hourlyRate}/hour</p>
+                    </div>
+                    <div>
+                      <span className="text-blue-600 font-medium">Est. Time:</span>
+                      <p className="text-blue-800">{notification.estimatedTime}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 pt-3 border-t border-blue-100">
+                    <span className="text-blue-600 font-medium">Estimated Cost:</span>
+                    <p className="text-blue-800">₹{notification.estimatedCost?.total_cost} ({notification.estimatedCost?.estimated_hours} hours)</p>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 justify-center">
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                    Accept Assignment
+                  </Button>
+                  <Button size="sm" variant="outline">
+                    Request Reschedule
+                  </Button>
+                  <Button size="sm" variant="outline">
+                    Reject & Request Another
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
           
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
             <h3 className="font-semibold text-green-800 mb-2">Issue Details</h3>
@@ -176,11 +236,11 @@ export default function ReportIssuePage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-green-700">Status:</span>
-                <span className="font-medium">Pending</span>
+                <span className="font-medium">{submittedIssue?.status || "Pending"}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-green-700">Estimated Response:</span>
-                <span className="font-medium">{aiSuggestion?.estimatedTime || "1-2 days"}</span>
+                <span className="text-green-700">Assigned To:</span>
+                <span className="font-medium">{submittedIssue?.assignedTo?.name || "Not assigned"}</span>
               </div>
             </div>
           </div>
@@ -189,6 +249,7 @@ export default function ReportIssuePage() {
             <Button onClick={() => {
               setSubmitted(false);
               setSubmittedIssue(null);
+              setNotification(null);
               setFormData({
                 category: "",
                 priority: "",
@@ -197,6 +258,8 @@ export default function ReportIssuePage() {
                 location: "",
                 contactPhone: "",
                 contactEmail: "",
+                isEmergency: false,
+                emergencyType: "",
               });
               setAiSuggestion(null);
             }}>

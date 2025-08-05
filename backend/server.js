@@ -15,6 +15,7 @@ const securityRoutes = require('./routes/security');
 const maintenanceRoutes = require('./routes/maintenance');
 const aiBillingRoutes = require('./routes/ai-billing');
 const technicianAssignmentRoutes = require('./routes/technician-assignment');
+const notificationsRoutes = require('./routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -64,10 +65,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/issues', issueRoutes);
 app.use('/api/bills', billRoutes);
-app.use('/api/security', securityRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
+app.use('/api/security', securityRoutes);
 app.use('/api/ai-billing', aiBillingRoutes);
 app.use('/api/technician-assignment', technicianAssignmentRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

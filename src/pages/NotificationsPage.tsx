@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import {
   Bell,
   User,
@@ -49,13 +50,46 @@ export default function NotificationsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [selectedNotification, setSelectedNotification] = useState<any>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [previousUnreadCount, setPreviousUnreadCount] = useState(0);
+  const { toast } = useToast();
 
   // Fetch notifications from backend
   useEffect(() => {
     fetchNotifications();
   }, []);
+
+  // Auto-refresh notifications every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing notifications...');
+      fetchNotifications();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Update unread count when notifications change
+  useEffect(() => {
+    const unread = notifications.filter(n => n.status === 'unread').length;
+    setUnreadCount(unread);
+    
+    // Show toast when new notifications arrive
+    if (unread > previousUnreadCount && previousUnreadCount > 0) {
+      const newCount = unread - previousUnreadCount;
+      toast({
+        title: "New Notifications",
+        description: `You have ${newCount} new notification${newCount > 1 ? 's' : ''}`,
+        duration: 3000,
+      });
+    }
+    
+    setPreviousUnreadCount(unread);
+  }, [notifications, previousUnreadCount, toast]);
 
   const fetchNotifications = async () => {
     setLoading(true);
@@ -66,46 +100,124 @@ export default function NotificationsPage() {
         return;
       }
 
-      // For now, we'll use mock data since we need to implement the notifications API
-      // In a real implementation, this would fetch from /api/notifications
-      const mockNotifications: Notification[] = [
-        {
-          id: "1",
-          type: "technician_assignment",
-          title: "Technician Assigned: Rajesh Kumar",
-          message: "Rajesh Kumar has been assigned to your issue. They specialize in plumbing and charge ₹800/hour.",
-          timestamp: "2024-01-10 10:15",
-          priority: "high",
-          status: "unread",
-          issueId: "issue_1"
-        },
-        {
-          id: "2",
-          type: "issue_update",
-          title: "Issue Update",
-          message: "Your elevator issue has been resolved by Ramesh Iyer",
-          timestamp: "2024-01-08 15:15",
-          priority: "medium",
-          status: "read",
-          issueId: "issue_2"
-        },
-        {
-          id: "3",
-          type: "ai_analysis",
-          title: "AI Priority Update",
-          message: "Your window lock issue has been re-prioritized to high due to security concerns",
-          timestamp: "2024-01-15 18:30",
-          priority: "high",
-          status: "unread",
-          issueId: "issue_3"
+      // Fetch real notifications from the API
+      const response = await fetch('/api/notifications', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
-      ];
+      });
 
-      setNotifications(mockNotifications);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch notifications: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setNotifications(data.notifications);
+        setLastRefresh(new Date());
+        console.log('✅ Notifications refreshed successfully:', {
+          count: data.count,
+          unreadCount: data.unreadCount
+        });
+      } else {
+        console.error('❌ Failed to fetch notifications:', data.error);
+        // Fallback to empty array if API fails
+        setNotifications([]);
+      }
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      // Fallback to empty array if API fails
+      setNotifications([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchNotifications();
+    setRefreshing(false);
+  };
+
+  const simulateNewNotification = () => {
+    const newNotification: Notification = {
+      id: Date.now().toString(),
+      type: "technician_assignment",
+      title: "AI Assignment: Lakshmi Devi",
+      message: "AI agent has automatically assigned Lakshmi Devi to your cleaning request. Estimated cost: ₹800 (2 hours).",
+      timestamp: new Date().toLocaleString(),
+      priority: "high",
+      status: "unread",
+      issueId: "simulated_issue",
+      technician: {
+        name: "Lakshmi Devi",
+        skills: ["cleaning"],
+        hourlyRate: 400,
+        phone: "+91 98765 43216",
+        email: "lakshmi.gardener@societyhub.com"
+      }
+    };
+    
+    setNotifications(prev => [newNotification, ...prev]);
+    toast({
+      title: "New AI Assignment",
+      description: "AI agent has assigned a technician to your issue!",
+      duration: 3000,
+    });
+  };
+
+  const markAsRead = async (notificationId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No authentication token found');
+        return;
+      }
+
+      // Call API to mark notification as read
+      const response = await fetch('/api/notifications/mark-read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ notificationId })
+      });
+
+      if (response.ok) {
+        // Update local state
+        setNotifications(prev => 
+          prev.map(n => 
+            n.id === notificationId 
+              ? { ...n, status: 'read' as const }
+              : n
+          )
+        );
+        console.log('✅ Notification marked as read:', notificationId);
+      } else {
+        console.error('❌ Failed to mark notification as read');
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      // Still update local state even if API fails
+      setNotifications(prev => 
+        prev.map(n => 
+          n.id === notificationId 
+            ? { ...n, status: 'read' as const }
+            : n
+        )
+      );
+    }
+  };
+
+  const handleNotificationClick = async (notification: Notification) => {
+    await markAsRead(notification.id);
+    if (notification.type === 'technician_assignment') {
+      setSelectedNotification(notification);
+      setSelectedIssueId(notification.issueId || null);
     }
   };
 
@@ -295,18 +407,38 @@ export default function NotificationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Notifications</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            Notifications
+            {unreadCount > 0 && (
+              <Badge variant="destructive" className="ml-2">
+                {unreadCount} new
+              </Badge>
+            )}
+          </h1>
           <p className="text-muted-foreground">Stay updated with your maintenance requests</p>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={fetchNotifications}
-          disabled={loading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-muted-foreground">
+            Last refreshed: {lastRefresh.toLocaleTimeString()}
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleRefresh}
+            disabled={loading || refreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading || refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
+          <Button 
+            variant="secondary" 
+            size="sm"
+            onClick={simulateNewNotification}
+          >
+            <Bot className="h-4 w-4 mr-2" />
+            Test AI Assignment
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -369,11 +501,7 @@ export default function NotificationsPage() {
               className={`cursor-pointer transition-all hover:shadow-md ${
                 notification.status === 'unread' ? 'border-blue-200 bg-blue-50' : ''
               }`}
-              onClick={() => {
-                if (notification.type === 'technician_assignment' && notification.issueId) {
-                  handleAssignTechnician(notification.issueId);
-                }
-              }}
+              onClick={() => handleNotificationClick(notification)}
             >
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">

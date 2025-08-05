@@ -228,13 +228,14 @@ def assign_technician(issue_data: dict) -> dict:
         # Get the result
         result = crew.kickoff()
         
-        # Parse the result
+        # Parse the result - convert CrewOutput to string first
         try:
-            return json.loads(result)
+            result_str = str(result)
+            return json.loads(result_str)
         except:
             return {
                 "error": "Failed to parse agent result",
-                "raw_result": result
+                "raw_result": str(result)
             }
             
     except Exception as e:
@@ -302,7 +303,12 @@ def test_assignment():
     
     result = assign_technician(sample_issue)
     print("Test Result:")
-    print(json.dumps(result, indent=2))
+    try:
+        print(json.dumps(result, indent=2))
+    except TypeError as e:
+        print(f"Error serializing result: {e}")
+        print(f"Result type: {type(result)}")
+        print(f"Result: {result}")
 
 # ---------------------------
 # Run if called directly
