@@ -30,7 +30,7 @@ app.use(limiter);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'http://localhost:8081', 'http://localhost:3000'],
   credentials: true
 }));
 
@@ -42,12 +42,20 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('combined'));
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/resident-assist-ai', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
+const mongoURI = process.env.MONGODB_URI || 'mongodb+srv://waghelahiren16:2k5TVOdYVCy4EFJm@cluster0.fkkhdpx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+if (!mongoURI) {
+  console.error('❌ MONGODB_URI environment variable is not set');
+  process.exit(1);
+}
+mongoose.connect(mongoURI, {
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
 })
-.then(() => console.log('✅ Connected to MongoDB'))
-.catch(err => console.error('❌ MongoDB connection error:', err));
+.then(() => console.log('✅ Connected to MongoDB - societyhub database'))
+.catch(err => {
+  console.error('❌ MongoDB connection error:', err);
+  console.log('⚠️  Server will continue without database connection');
+});
 
 // Routes
 app.use('/api/auth', authRoutes);

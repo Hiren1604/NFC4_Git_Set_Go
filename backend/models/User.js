@@ -28,8 +28,7 @@ const userSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    required: [true, 'Phone number is required'],
-    match: [/^[0-9+\-\s()]+$/, 'Please enter a valid phone number']
+    required: [true, 'Phone number is required']
   },
   flatNumber: {
     type: String,
@@ -86,7 +85,6 @@ const userSchema = new mongoose.Schema({
 });
 
 // Index for better query performance
-userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ flatNumber: 1, building: 1 });
 

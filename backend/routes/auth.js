@@ -12,7 +12,7 @@ router.post('/register', [
   body('name').trim().isLength({ min: 2, max: 50 }).withMessage('Name must be between 2 and 50 characters'),
   body('email').isEmail().normalizeEmail().withMessage('Please enter a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('phone').matches(/^[0-9+\-\s()]+$/).withMessage('Please enter a valid phone number'),
+  body('phone').notEmpty().withMessage('Phone number is required'),
   body('role').isIn(['resident', 'admin', 'technician']).withMessage('Invalid role'),
   body('flatNumber').if(body('role').equals('resident')).notEmpty().withMessage('Flat number is required for residents'),
   body('building').if(body('role').equals('resident')).notEmpty().withMessage('Building is required for residents')
@@ -46,20 +46,20 @@ router.post('/register', [
     });
 
     if (user) {
+      const userObj = user.toObject();
+      delete userObj.password;
       res.status(201).json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        phone: user.phone,
-        flatNumber: user.flatNumber,
-        building: user.building,
-        avatar: user.avatar,
+        user: userObj,
         token: generateToken(user._id)
       });
     }
   } catch (error) {
     console.error('Registration error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     res.status(500).json({ error: 'Server error during registration' });
   }
 });
@@ -102,21 +102,28 @@ router.post('/login', [
     await user.save();
 
     res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      phone: user.phone,
-      flatNumber: user.flatNumber,
-      building: user.building,
-      avatar: user.avatar,
-      skills: user.skills,
-      hourlyRate: user.hourlyRate,
-      availability: user.availability,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        flatNumber: user.flatNumber,
+        building: user.building,
+        avatar: user.avatar,
+        skills: user.skills,
+        hourlyRate: user.hourlyRate,
+        availability: user.availability
+      },
       token: generateToken(user._id)
     });
   } catch (error) {
     console.error('Login error:', error);
+    console.error('Login error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     res.status(500).json({ error: 'Server error during login' });
   }
 });

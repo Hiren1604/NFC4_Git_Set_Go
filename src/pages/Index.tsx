@@ -123,9 +123,9 @@ const Index = () => {
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-semibold text-center mb-8">Choose Your Portal</h2>
           
-          <div className="grid md:grid-cols-3 gap-6 mb-12">
+          <div className="grid md:grid-cols-3 gap-6 mb-12 items-stretch">
             {/* Admin Portal */}
-            <Card className="transition-all duration-normal hover:shadow-lg hover:scale-105 cursor-pointer border-2 hover:border-primary">
+            <Card className="transition-all duration-normal hover:shadow-lg hover:scale-105 cursor-pointer border-2 hover:border-primary flex flex-col">
               <CardHeader className="text-center pb-4">
                 <div className="rounded-full bg-primary-light p-4 w-16 h-16 mx-auto mb-4">
                   <ShieldCheck className="h-8 w-8 text-primary mx-auto" />
@@ -133,8 +133,8 @@ const Index = () => {
                 <CardTitle className="text-xl">Admin Portal</CardTitle>
                 <p className="text-text-muted">Complete society management</p>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2 text-sm">
+              <CardContent className="space-y-3 flex-1 flex flex-col">
+                <div className="space-y-2 text-sm flex-1">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-primary rounded-full"></div>
                     <span>All issues overview & assignment</span>
@@ -163,7 +163,7 @@ const Index = () => {
             </Card>
 
             {/* Resident Portal */}
-            <Card className="transition-all duration-normal hover:shadow-lg hover:scale-105 cursor-pointer border-2 hover:border-status-progress">
+            <Card className="transition-all duration-normal hover:shadow-lg hover:scale-105 cursor-pointer border-2 hover:border-status-progress flex flex-col">
               <CardHeader className="text-center pb-4">
                 <div className="rounded-full bg-status-progress-light p-4 w-16 h-16 mx-auto mb-4">
                   <Users className="h-8 w-8 text-status-progress mx-auto" />
@@ -171,8 +171,8 @@ const Index = () => {
                 <CardTitle className="text-xl">Resident Portal</CardTitle>
                 <p className="text-text-muted">Report & track your issues</p>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2 text-sm">
+              <CardContent className="space-y-3 flex-1 flex flex-col">
+                <div className="space-y-2 text-sm flex-1">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-status-progress rounded-full"></div>
                     <span>Easy issue reporting with photos</span>
@@ -202,7 +202,7 @@ const Index = () => {
             </Card>
 
             {/* Technician Portal */}
-            <Card className="transition-all duration-normal hover:shadow-lg hover:scale-105 cursor-pointer border-2 hover:border-status-resolved">
+            <Card className="transition-all duration-normal hover:shadow-lg hover:scale-105 cursor-pointer border-2 hover:border-status-resolved flex flex-col">
               <CardHeader className="text-center pb-4">
                 <div className="rounded-full bg-status-resolved-light p-4 w-16 h-16 mx-auto mb-4">
                   <Wrench className="h-8 w-8 text-status-resolved mx-auto" />
@@ -210,8 +210,8 @@ const Index = () => {
                 <CardTitle className="text-xl">Technician Portal</CardTitle>
                 <p className="text-text-muted">Manage your assigned tasks</p>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2 text-sm">
+              <CardContent className="space-y-3 flex-1 flex flex-col">
+                <div className="space-y-2 text-sm flex-1">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-status-resolved rounded-full"></div>
                     <span>Smart task assignment based on skills</span>
@@ -244,17 +244,17 @@ const Index = () => {
           {/* Authentication Options */}
           <div className="text-center mb-8">
             <p className="text-text-muted mb-4">Ready to get started?</p>
-            <div className="flex gap-4 justify-center">
+            <div className="flex gap-4 justify-center items-center">
               <Button 
                 onClick={() => setCurrentView("login")}
-                className="px-8"
+                className="px-8 h-10"
               >
                 Sign In
               </Button>
               <Button 
                 variant="outline"
                 onClick={() => setCurrentView("signup")}
-                className="px-8"
+                className="px-8 h-10"
               >
                 Sign Up
               </Button>

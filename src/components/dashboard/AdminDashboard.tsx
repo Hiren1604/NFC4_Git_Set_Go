@@ -1,10 +1,15 @@
 import { useState } from "react";
 import { StatsCard } from "./StatsCard";
 import { IssueCard } from "./IssueCard";
+import { TechniciansPage } from "./TechniciansPage";
+import { AIPrioritizedIssues } from "./AIPrioritizedIssues";
+import { AIAgentsPage } from "./AIAgentsPage";
+import { AIInsights } from "./AIInsights";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   FileText,
   Users,
@@ -17,6 +22,9 @@ import {
   Zap,
   Activity,
   BarChart3,
+  LogOut,
+  Settings,
+  UserCheck,
 } from "lucide-react";
 
 // Mock data
@@ -109,8 +117,22 @@ const agentActivities = [
   }
 ];
 
-export function AdminDashboard() {
+interface AdminDashboardProps {
+  defaultTab?: string;
+}
+
+export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps) {
   const [selectedIssue, setSelectedIssue] = useState<any>(null);
+  const [selectedTab, setSelectedTab] = useState(defaultTab);
+
+  const handleLogout = () => {
+    // Clear localStorage
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    
+    // Reload the page to redirect to login
+    window.location.reload();
+  };
 
   return (
     <div className="space-y-6">
@@ -125,50 +147,74 @@ export function AdminDashboard() {
             <BarChart3 className="h-4 w-4" />
             Generate Report
           </Button>
-          <Button size="sm">
+          <Button 
+            size="sm"
+            onClick={() => setSelectedTab("ai-insights")}
+          >
             <Bot className="h-4 w-4" />
             AI Insights
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+            <LogOut className="h-4 w-4" />
+            Logout
           </Button>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
-          title="Total Issues"
-          value="47"
-          change={{ value: 12, type: "increase" }}
-          icon={FileText}
-          variant="default"
-        />
-        <StatsCard
-          title="Pending Issues"
-          value="12"
-          change={{ value: 5, type: "decrease" }}
-          icon={Clock}
-          variant="pending"
-        />
-        <StatsCard
-          title="Active Technicians"
-          value="8"
-          icon={Users}
-          variant="progress"
-        />
-        <StatsCard
-          title="Resolved Today"
-          value="6"
-          change={{ value: 25, type: "increase" }}
-          icon={CheckCircle}
-          variant="resolved"
-        />
-      </div>
+      {/* Main Content Tabs */}
+      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="technicians">Technicians</TabsTrigger>
+          <TabsTrigger value="ai-agents">AI Agents</TabsTrigger>
+          <TabsTrigger value="ai-issues">AI Issues</TabsTrigger>
+        </TabsList>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatsCard
+              title="Total Issues"
+              value="47"
+              change={{ value: 12, type: "increase" }}
+              icon={FileText}
+              variant="default"
+            />
+            <StatsCard
+              title="Pending Issues"
+              value="12"
+              change={{ value: 5, type: "decrease" }}
+              icon={Clock}
+              variant="pending"
+            />
+            <StatsCard
+              title="Active Technicians"
+              value="8"
+              icon={Users}
+              variant="progress"
+            />
+            <StatsCard
+              title="Resolved Today"
+              value="6"
+              change={{ value: 25, type: "increase" }}
+              icon={CheckCircle}
+              variant="resolved"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Issues */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Recent Issues</h2>
-            <Button variant="outline" size="sm">View All</Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setSelectedTab("ai-issues")}
+            >
+              View All
+            </Button>
           </div>
           <div className="space-y-4">
             {mockIssues.map((issue) => (
@@ -228,32 +274,31 @@ export function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start">
-                <Wrench className="h-4 w-4" />
-                Assign Technician
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <AlertTriangle className="h-4 w-4" />
-                Escalate Issue
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <TrendingUp className="h-4 w-4" />
-                View Analytics
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <Zap className="h-4 w-4" />
-                Trigger AI Analysis
-              </Button>
-            </CardContent>
-          </Card>
+
         </div>
       </div>
+        </TabsContent>
+
+        {/* Technicians Tab */}
+        <TabsContent value="technicians">
+          <TechniciansPage />
+        </TabsContent>
+
+        {/* AI Agents Tab */}
+        <TabsContent value="ai-agents">
+          <AIAgentsPage />
+        </TabsContent>
+
+        {/* AI Issues Tab */}
+        <TabsContent value="ai-issues">
+          <AIPrioritizedIssues />
+        </TabsContent>
+
+        {/* AI Insights Tab */}
+        <TabsContent value="ai-insights">
+          <AIInsights />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

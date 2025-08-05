@@ -47,6 +47,27 @@ const SignupPage = ({ onSignupSuccess, onSwitchToLogin }: SignupPageProps) => {
       return;
     }
 
+    // Validate role is selected
+    if (!formData.role) {
+      setError("Please select a role");
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate required fields for residents
+    if (formData.role === 'resident') {
+      if (!formData.flatNumber.trim()) {
+        setError("Flat number is required for residents");
+        setIsLoading(false);
+        return;
+      }
+      if (!formData.building.trim()) {
+        setError("Building is required for residents");
+        setIsLoading(false);
+        return;
+      }
+    }
+
     try {
       const response = await fetch("http://localhost:5000/api/auth/register", {
         method: "POST",
@@ -67,10 +88,15 @@ const SignupPage = ({ onSignupSuccess, onSwitchToLogin }: SignupPageProps) => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Registration failed");
+        console.error('Registration error:', data);
+        if (data.errors && Array.isArray(data.errors)) {
+          const errorMessages = data.errors.map((err: any) => err.msg).join(', ');
+          throw new Error(errorMessages);
+        }
+        throw new Error(data.error || data.message || "Registration failed");
       }
 
-      // Store token in localStorage
+      // Store token and user
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 

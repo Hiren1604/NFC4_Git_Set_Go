@@ -37,10 +37,15 @@ const LoginPage = ({ onLoginSuccess, onSwitchToSignup }: LoginPageProps) => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Login failed");
+        console.error('Login error:', data);
+        if (data.errors && Array.isArray(data.errors)) {
+          const errorMessages = data.errors.map((err: any) => err.msg).join(', ');
+          throw new Error(errorMessages);
+        }
+        throw new Error(data.error || data.message || "Login failed");
       }
 
-      // Store token in localStorage
+      // Store token and user
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 

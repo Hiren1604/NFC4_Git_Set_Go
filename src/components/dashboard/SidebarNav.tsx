@@ -41,7 +41,7 @@ const navigationItems = {
     { id: "technicians", label: "Technicians", icon: Wrench },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "ai-agents", label: "AI Agents", icon: Bot, badge: "Active" },
-    { id: "settings", label: "Settings", icon: Settings },
+    { id: "ai-issues", label: "AI Issues", icon: Bot },
   ],
   technician: [
     { id: "dashboard", label: "Dashboard", icon: Home },

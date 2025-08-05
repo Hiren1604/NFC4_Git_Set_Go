@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import { BillDisputeModal } from "@/components/ui/bill-dispute-modal";
 import {
   Home,
   FileText,
@@ -74,6 +75,39 @@ export function ResidentDashboard() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [sortBy, setSortBy] = useState("date");
+
+  // Handle dispute submission
+  const handleDisputeSubmit = async (disputeData: any) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:5000/api/bills/${disputeData.billId}/dispute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          type: disputeData.type,
+          description: disputeData.description || disputeData.doublePaymentDetails || disputeData.wrongSplitDetails,
+          transactionId: disputeData.transactionId,
+          paymentDate: disputeData.paymentDate,
+          paymentMethod: disputeData.paymentMethod
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit dispute');
+      }
+
+      const result = await response.json();
+      console.log('Dispute submitted successfully:', result);
+      // You can add a toast notification here
+    } catch (error) {
+      console.error('Error submitting dispute:', error);
+      // You can add error handling here
+    }
+  };
 
   // Mock data
   const complaints = [
@@ -439,10 +473,10 @@ export function ResidentDashboard() {
                               <DollarSign className="h-4 w-4 mr-2" />
                               Pay Bill
                             </Button>
-                            <Button variant="outline" size="sm">
-                              <AlertCircle className="h-4 w-4 mr-2" />
-                              Raise Issue
-                            </Button>
+                            <BillDisputeModal 
+                              bill={bill} 
+                              onDisputeSubmit={handleDisputeSubmit}
+                            />
                           </>
                         )}
                         {bill.status === "disputed" && (
