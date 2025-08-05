@@ -63,12 +63,16 @@ ai-agents/*.egg-info/
 ai-agents/.installed.cfg
 ai-agents/*.egg
 
-# AI Agents - Virtual Environments
+# AI Agents - Virtual Environments (CRITICAL - This was missing!)
 ai-agents/venv/
 ai-agents/env/
 ai-agents/ENV/
 ai-agents/.venv/
 ai-agents/.env/
+ai-agents/Scripts/
+ai-agents/Lib/
+ai-agents/Include/
+ai-agents/pyvenv.cfg
 
 # AI Agents - IDE & Editor Files
 ai-agents/.vscode/
@@ -117,3 +121,32 @@ ai-agents.pytest_cache/
 ai-agents.mypy_cache/
 ai-agents.dmypy.json
 ai-agentsdmypy.json
+
+# Large files that shouldn't be tracked
+*.exe
+*.dll
+*.so
+*.dylib
+*.pyd
+*.pdb
+*.obj
+*.o
+*.a
+*.lib
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
