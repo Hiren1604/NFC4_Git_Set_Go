@@ -27,4 +27,93 @@ dist-ssr
 backend/.env
 ai-agents/.env
 
+# AI Agents - Environment & Secrets
+ai-agents/.env
+ai-agents/.env.local
+ai-agents/.env.production
+ai-agents/.env.development
+
+# AI Agents - API Keys & Credentials
+ai-agents/config/
+ai-agents/secrets/
+ai-agents/credentials/
+ai-agents/*.key
+ai-agents/*.pem
+ai-agents/*.p12
+
+# AI Agents - Python Cache & Build Files
+ai-agents/__pycache__/
+ai-agents/*.pyc
+ai-agents/*.pyo
+ai-agents/*.pyd
+ai-agents/.Python
+ai-agents/build/
+ai-agents/develop-eggs/
+ai-agents/dist/
+ai-agents/downloads/
+ai-agents/eggs/
+ai-agents/.eggs/
+ai-agents/lib/
+ai-agents/lib64/
+ai-agents/parts/
+ai-agents/sdist/
+ai-agents/var/
+ai-agents/wheels/
+ai-agents/*.egg-info/
+ai-agents/.installed.cfg
+ai-agents/*.egg
+
+# AI Agents - Virtual Environments
 ai-agents/venv/
+ai-agents/env/
+ai-agents/ENV/
+ai-agents/.venv/
+ai-agents/.env/
+
+# AI Agents - IDE & Editor Files
+ai-agents/.vscode/
+ai-agents/.idea/
+ai-agents/*.swp
+ai-agents/*.swo
+ai-agents/*~
+
+# AI Agents - Logs & Temporary Files
+ai-agents/*.log
+ai-agents/logs/
+ai-agents/temp/
+ai-agents/tmp/
+ai-agents*.tmp
+ai-agents*.temp
+
+# AI Agents - Data Files (if they contain sensitive info)
+ai-agents/data/
+ai-agents/datasets/
+ai-agents/output/
+ai-agents/results/
+ai-agents/cache/
+
+# AI Agents - Model Files (if large or sensitive)
+ai-agents/models/
+ai-agents/checkpoints/
+ai-agents/saved_models/
+
+# AI Agents - Jupyter Notebook Checkpoints
+ai-agents/.ipynb_checkpoints/
+ai-agents/*.ipynb_checkpoints
+
+# AI Agents - Coverage Reports
+ai-agents/htmlcov/
+ai-agents.tox/
+ai-agents.coverage
+ai-agents.coverage.*
+ai-agents.cache
+ai-agentsnosetests.xml
+ai-agentscoverage.xml
+ai-agents*.cover
+ai-agents.hypothesis/
+ai-agents.pytest_cache/
+
+# AI Agents - mypy
+ai-agents.mypy_cache/
+ai-agents.dmypy.json
+ai-agentsdmypy.json
