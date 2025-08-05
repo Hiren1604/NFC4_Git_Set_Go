@@ -143,20 +143,12 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
           <p className="text-text-muted">Manage your society with AI-powered insights</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm">
-            <BarChart3 className="h-4 w-4" />
-            Generate Report
-          </Button>
           <Button 
             size="sm"
             onClick={() => setSelectedTab("ai-insights")}
           >
             <Bot className="h-4 w-4" />
             AI Insights
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleLogout}>
-            <LogOut className="h-4 w-4" />
-            Logout
           </Button>
         </div>
       </div>

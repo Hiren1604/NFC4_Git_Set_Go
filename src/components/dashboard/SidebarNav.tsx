@@ -24,6 +24,13 @@ interface SidebarNavProps {
   activeItem?: string;
   onItemClick?: (item: string) => void;
   onLogout?: () => void;
+  user?: {
+    name: string;
+    email: string;
+    flatNumber?: string;
+    building?: string;
+    specialization?: string;
+  };
 }
 
 const navigationItems = {
@@ -52,7 +59,7 @@ const navigationItems = {
   ],
 };
 
-export function SidebarNav({ role, activeItem = "dashboard", onItemClick, onLogout }: SidebarNavProps) {
+export function SidebarNav({ role, activeItem = "dashboard", onItemClick, onLogout, user }: SidebarNavProps) {
   const items = navigationItems[role];
 
   return (
@@ -73,16 +80,19 @@ export function SidebarNav({ role, activeItem = "dashboard", onItemClick, onLogo
         <div className="flex items-center gap-3">
           <Avatar className="h-12 w-12">
             <AvatarImage src="/placeholder-avatar.jpg" />
-            <AvatarFallback className="bg-primary text-primary-foreground">JD</AvatarFallback>
+            <AvatarFallback className="bg-primary text-primary-foreground">
+              {user?.name ? user.name.split(' ').map(n => n[0]).join('') : 'U'}
+            </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="font-medium truncate">John Doe</p>
+            <p className="font-medium truncate">{user?.name || 'User'}</p>
             <p className="text-sm text-text-muted capitalize">
               {role === "admin" ? "Society Admin" : role}
             </p>
             <div className="flex items-center gap-1 mt-1">
               <Badge variant="secondary" className="text-xs">
-                {role === "resident" ? "A-501" : role === "technician" ? "Electrical" : "Admin"}
+                {role === "resident" ? `${user?.building || 'A'}-${user?.flatNumber || '501'}` : 
+                 role === "technician" ? user?.specialization || "General" : "Admin"}
               </Badge>
               {role === "technician" && (
                 <Badge variant="outline" className="text-xs bg-status-resolved-light text-status-resolved">

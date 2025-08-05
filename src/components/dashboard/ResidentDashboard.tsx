@@ -254,29 +254,6 @@ export function ResidentDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Welcome back, John!</h1>
-          <p className="text-muted-foreground">Flat A-501, Building A</p>
-        </div>
-        <div className="flex gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => setShowProfileModal(true)}
-          >
-            <User className="h-4 w-4 mr-2" />
-            Profile
-          </Button>
-          <Button 
-            className="bg-red-600 text-white hover:bg-red-700"
-            onClick={() => setShowEmergencyModal(true)}
-          >
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            SOS Emergency
-          </Button>
-        </div>
-      </div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

@@ -109,29 +109,6 @@ export function TechnicianDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Good morning, Alex!</h1>
-          <p className="text-gray-600">Electrical Specialist • ID: TECH-001</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Status:</span>
-            <Button 
-              variant={availability ? "default" : "secondary"}
-              size="sm"
-              onClick={() => setAvailability(!availability)}
-            >
-              {availability ? "Available" : "Offline"}
-            </Button>
-          </div>
-          <Button variant="outline">
-            <Navigation className="h-4 w-4" />
-            Route Optimization
-          </Button>
-        </div>
-      </div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
