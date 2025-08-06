@@ -7,11 +7,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ---------------------------
-# Load Gemini Model
+# Load Gemini Model with API Key
 # ---------------------------
+# Set the API key from environment
+google_api_key = os.getenv('GOOGLE_API_KEY')
+if google_api_key:
+    os.environ['GOOGLE_API_KEY'] = google_api_key
+
 llm = LLM(
-    model="gemini/gemini-2.0-flash",
-    temperature=0.2,
+    model="gemini/gemini-1.5-flash",  # Using more stable model
+    temperature=0.1,  # Lower temperature for more consistent output
+    api_key=google_api_key
 )
 
 # ---------------------------
@@ -26,50 +32,29 @@ class TechnicianAssignmentTool(BaseTool):
             # Parse the issue data
             if isinstance(issue_data, str):
                 issue_data = json.loads(issue_data)
-            
+
             category = issue_data.get("category", "").lower()
             title = issue_data.get("title", "")
             description = issue_data.get("description", "")
-            
+
             # Get technicians from the provided data
             technicians = issue_data.get("technicians", [])
-            
-            # Find the best technician for the category
-            best_technician = None
-            best_match_score = 0
-            
-            for tech in technicians:
-                skills = [skill.lower() for skill in tech.get("skills", [])]
-                
-                # Calculate match score
-                match_score = 0
-                if category in skills:
-                    match_score += 3  # Primary skill match
-                elif any(skill in category for skill in skills):
-                    match_score += 2  # Partial skill match
-                
-                # Prefer available technicians
-                if tech.get("availability") == "available":
-                    match_score += 1
-                
-                # Prefer technicians with lower hourly rate (cost-effective)
-                hourly_rate = tech.get("hourlyRate", 1000)
-                if hourly_rate < 600:
-                    match_score += 1
-                
-                if match_score > best_match_score:
-                    best_match_score = match_score
-                    best_technician = tech
-            
+
+            if not technicians:
+                return json.dumps({
+                    "error": "No technicians available",
+                    "category": category
+                })
+
+            # Find the best technician for the category using simple logic
+            best_technician = self._find_best_technician(category, technicians)
+
             if not best_technician:
-                # Fallback to general technician
-                for tech in technicians:
-                    if "plumbing" in tech.get("skills", []) and "electrical" in tech.get("skills", []):
-                        best_technician = tech
-                        break
-                
-                if not best_technician and technicians:
-                    best_technician = technicians[0]  # Last resort
+                return json.dumps({
+                    "error": "No suitable technician found for this category",
+                    "category": category,
+                    "available_technicians": len(technicians)
+                })
             
             if best_technician:
                 # Create assignment notification
@@ -125,7 +110,57 @@ class TechnicianAssignmentTool(BaseTool):
                 "error": f"Error while processing issue: {str(e)}",
                 "issue_data": str(issue_data)
             })
-    
+
+    def _find_best_technician(self, category: str, technicians: list) -> dict:
+        """Find the best technician using simple matching logic."""
+        best_technician = None
+        best_match_score = 0
+
+        for tech in technicians:
+            skills = [skill.lower() for skill in tech.get("skills", [])]
+
+            # Calculate match score
+            match_score = 0
+            if category in skills:
+                match_score += 3  # Primary skill match
+            elif any(skill in category or category in skill for skill in skills):
+                match_score += 2  # Partial skill match
+
+            # Prefer available technicians
+            if tech.get("availability") == "available":
+                match_score += 1
+
+            # Prefer technicians with lower hourly rate (cost-effective)
+            hourly_rate = tech.get("hourlyRate", 1000)
+            if hourly_rate < 600:
+                match_score += 1
+
+            if match_score > best_match_score:
+                best_match_score = match_score
+                best_technician = tech
+
+        # Fallback logic
+        if not best_technician:
+            # Try to find a general technician with multiple skills
+            for tech in technicians:
+                skills = tech.get("skills", [])
+                if len(skills) >= 2:  # Multi-skilled technician
+                    best_technician = tech
+                    break
+
+            # Last resort - any available technician
+            if not best_technician:
+                for tech in technicians:
+                    if tech.get("availability") == "available":
+                        best_technician = tech
+                        break
+
+                # Absolute last resort
+                if not best_technician and technicians:
+                    best_technician = technicians[0]
+
+        return best_technician
+
     def _get_estimated_time(self, category: str, title: str, description: str) -> str:
         """Estimate completion time based on category and issue details."""
         time_estimates = {
@@ -184,9 +219,9 @@ assignment_tool = TechnicianAssignmentTool()
 technician_agent = Agent(
     role="Technician Dispatcher",
     goal="Assign the most suitable technician to maintenance issues based on skills, availability, and cost",
-    backstory="You are an expert technician dispatcher with years of experience in maintenance management. You always consider skills, availability, and cost when making assignments.",
+    backstory="You are an expert technician dispatcher. Assign technicians based on skills match, availability, and cost efficiency.",
     tools=[assignment_tool],
-    verbose=True,
+    verbose=False,  # Reduce verbosity to avoid encoding issues
     llm=llm
 )
 
@@ -196,48 +231,62 @@ technician_agent = Agent(
 def assign_technician(issue_data: dict) -> dict:
     """
     Main function to assign a technician to an issue.
-    
+
     Args:
         issue_data: Dictionary containing issue details and available technicians
-        
+
     Returns:
         Dictionary with assignment notification
     """
     try:
-        # Create task for the agent
-        task = Task(
-            description=(
-                f"Analyze this issue and assign the best technician:\n\n"
-                f"Issue: {issue_data.get('title', '')}\n"
-                f"Description: {issue_data.get('description', '')}\n"
-                f"Category: {issue_data.get('category', '')}\n\n"
-                f"Available Technicians: {len(issue_data.get('technicians', []))} technicians\n\n"
-                "Use the Technician Assignment Tool to find the best match."
-            ),
-            expected_output="JSON notification with technician assignment details",
-            agent=technician_agent
-        )
-        
-        # Create crew and run
-        crew = Crew(
-            agents=[technician_agent],
-            tasks=[task],
-            verbose=False
-        )
-        
-        # Get the result
-        result = crew.kickoff()
-        
-        # Parse the result - convert CrewOutput to string first
+        # First try direct assignment without AI agent as fallback
+        assignment_tool = TechnicianAssignmentTool()
+        result_str = assignment_tool._run(issue_data)
+
         try:
+            result = json.loads(result_str)
+            if not result.get("error"):
+                return result
+        except json.JSONDecodeError:
+            pass
+
+        # If direct assignment fails, try with AI agent
+        try:
+            # Create task for the agent
+            task = Task(
+                description=(
+                    f"Assign the best technician for this {issue_data.get('category', '')} issue. "
+                    f"Consider skills, availability, and cost. "
+                    f"Issue: {issue_data.get('title', '')} - {issue_data.get('description', '')}"
+                ),
+                expected_output="JSON notification with technician assignment details",
+                agent=technician_agent
+            )
+
+            # Create crew and run with minimal verbosity
+            crew = Crew(
+                agents=[technician_agent],
+                tasks=[task],
+                verbose=False
+            )
+
+            # Get the result
+            result = crew.kickoff()
+
+            # Parse the result - convert CrewOutput to string first
             result_str = str(result)
             return json.loads(result_str)
-        except:
-            return {
-                "error": "Failed to parse agent result",
-                "raw_result": str(result)
-            }
-            
+
+        except Exception as ai_error:
+            # If AI agent fails, fall back to direct assignment result
+            try:
+                return json.loads(result_str)
+            except:
+                return {
+                    "error": f"Both AI agent and direct assignment failed: {str(ai_error)}",
+                    "fallback_attempted": True
+                }
+
     except Exception as e:
         return {
             "error": f"Error in technician assignment: {str(e)}"
@@ -249,26 +298,31 @@ def assign_technician(issue_data: dict) -> dict:
 def main():
     """Main function for backend integration - reads from stdin and writes to stdout."""
     try:
+        # Set UTF-8 encoding for stdout to handle Unicode characters
+        import codecs
+        if hasattr(sys.stdout, 'detach'):
+            sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach())
+
         # Read input from stdin
         input_data = sys.stdin.read()
-        
+
         if not input_data.strip():
-            print(json.dumps({"error": "No input data provided"}))
+            print(json.dumps({"error": "No input data provided"}, ensure_ascii=False))
             return
-        
+
         # Parse the input data
         issue_data = json.loads(input_data)
-        
+
         # Run the assignment
         result = assign_technician(issue_data)
-        
-        # Output the result to stdout
-        print(json.dumps(result, indent=2))
-        
+
+        # Output the result to stdout with proper encoding
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+
     except json.JSONDecodeError as e:
-        print(json.dumps({"error": f"Invalid JSON input: {str(e)}"}))
+        print(json.dumps({"error": f"Invalid JSON input: {str(e)}"}, ensure_ascii=False))
     except Exception as e:
-        print(json.dumps({"error": f"Unexpected error: {str(e)}"}))
+        print(json.dumps({"error": f"Unexpected error: {str(e)}"}, ensure_ascii=False))
 
 # ---------------------------
 # Test Function
