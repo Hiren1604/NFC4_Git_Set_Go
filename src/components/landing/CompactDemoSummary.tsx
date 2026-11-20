@@ -1,0 +1,7 @@
+import { Check, Clock3, Cpu, Wrench } from "lucide-react";
+
+export function CompactDemoSummary({ role, stage }: { role: 'resident' | 'admin' | 'technician'; stage: number }) {
+  if (role === 'admin') return <div className="compact-demo-summary admin-mini"><div><span>OPEN REQUESTS</span><strong>{12 - stage}</strong></div><div><span>AI REVIEWED</span><strong>{9 + stage}<small>/12</small></strong></div><div><span>COLLECTIONS</span><strong>92<small>%</small></strong></div><p><Cpu size={12} />{stage < 2 ? 'Plumbing match ready for review' : 'Ravi assigned / dispatch queue updated'}</p></div>;
+  if (role === 'technician') return <div className="compact-demo-summary personnel-mini"><div className="mini-job"><Wrench size={17} /><div><b>Kitchen tap repair</b><span>A-204 / Plumbing</span></div><span className="product-tag">{stage === 3 ? 'Complete' : 'On shift'}</span></div><div className="mini-checks">{['Accept', 'Inspect', 'Repair', 'Complete'].map((label, i) => <span key={label} data-done={stage >= i}><Check size={11} />{label}</span>)}</div></div>;
+  return <div className="compact-demo-summary resident-mini"><div><span>YOUR HOME</span><strong>A-204</strong></div><div><span>MAINTENANCE</span><strong><Check size={14} />Paid</strong></div><div><span>MY REQUESTS</span><strong>{stage === 3 ? '01' : '02'}</strong></div><p><Clock3 size={12} />{stage < 2 ? 'AI is finding your plumbing specialist' : stage === 3 ? 'Repair complete / confirmation ready' : 'Ravi Kumar / your assigned specialist'}</p></div>;
+}

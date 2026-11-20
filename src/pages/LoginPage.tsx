@@ -1,17 +1,23 @@
+import { authenticate } from "@/services/auth";
+import { saveSession } from "@/lib/session";
+import { getErrorMessage } from "@/lib/api";
+import type { AuthUser, UserRole } from "@/types/auth";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Building2, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Building2, Eye, EyeOff, Loader2, ArrowRight } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface LoginPageProps {
-  onLoginSuccess: (userData: any) => void;
+  initialRole?: UserRole;
+  onLoginSuccess: (userData: AuthUser) => void;
   onSwitchToSignup: () => void;
 }
 
-const LoginPage = ({ onLoginSuccess, onSwitchToSignup }: LoginPageProps) => {
+export default function LoginPage({ onLoginSuccess, onSwitchToSignup, initialRole = "resident" }: LoginPageProps) {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -26,138 +32,124 @@ const LoginPage = ({ onLoginSuccess, onSwitchToSignup }: LoginPageProps) => {
     setError("");
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error('Login error:', data);
-        if (data.errors && Array.isArray(data.errors)) {
-          const errorMessages = data.errors.map((err: any) => err.msg).join(', ');
-          throw new Error(errorMessages);
-        }
-        throw new Error(data.error || data.message || "Login failed");
-      }
-
-      // Store token and user
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
+      const data = await authenticate("login", formData);
+      saveSession(data);
       onLoginSuccess(data.user);
-    } catch (err: any) {
-      setError(err.message || "Login failed. Please try again.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Login failed. Please try again."));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background-secondary to-primary-light flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
-            <div className="rounded-2xl bg-primary p-3">
-              <Building2 className="h-8 w-8 text-primary-foreground" />
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative antialiased selection:bg-primary/20 selection:text-primary">
+      {/* Top Bar with Theme Toggle */}
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+
+      <Card className="w-full max-w-md border-border shadow-elevated bg-card">
+        <CardHeader className="text-center space-y-3 pb-4">
+          <p className="text-sm text-muted-foreground">{initialRole === "technician" ? "Personnel" : initialRole === "admin" ? "Admin" : "Resident"} login</p>
+          <div className="flex items-center justify-center gap-2.5">
+            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-subtle">
+              <Building2 className="h-5 w-5" />
             </div>
-            <h1 className="text-2xl font-bold">SocietyHub</h1>
+            <div className="text-left">
+              <h1 className="text-base font-bold tracking-tight text-foreground flex items-center gap-1.5">
+                SocietyHub
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              </h1>
+              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+                Emerald Heights
+              </span>
+            </div>
           </div>
-          <CardTitle className="text-xl">Welcome Back</CardTitle>
-          <p className="text-text-muted">Sign in to your account</p>
+          <div>
+            <CardTitle className="text-lg font-bold">Sign In to Workspace</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Enter your credentials to access your society workspace
+            </p>
+          </div>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+
+        <CardContent className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="py-2 text-xs">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Email Address</Label>
               <Input
-                id="email"
                 name="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="name@emeraldheights.io"
                 value={formData.email}
-                onChange={handleInputChange}
+                onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
                 required
+                className="text-xs h-9"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Password</Label>
               <div className="relative">
                 <Input
-                  id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
+                  placeholder="••••••••"
                   value={formData.password}
-                  onChange={handleInputChange}
+                  onChange={(e) => setFormData((p) => ({ ...p, password: e.target.value }))}
                   required
+                  className="text-xs h-9 pr-9"
                 />
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  className="absolute right-2.5 top-2 text-muted-foreground hover:text-foreground"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full h-9 bg-primary hover:bg-primary/90 text-white text-xs font-semibold shadow-subtle"
               disabled={isLoading}
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
+                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                  Verifying...
                 </>
               ) : (
-                "Sign In"
+                <>
+                  Sign In
+                  <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                </>
               )}
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-text-muted">
-              Don't have an account?{" "}
-              <Button
-                variant="link"
-                className="p-0 h-auto font-semibold"
+          <div className="text-center pt-2 border-t border-border">
+            <p className="text-xs text-muted-foreground">
+              New community occupant?{" "}
+              <button
+                type="button"
+                className="font-semibold text-primary hover:underline"
                 onClick={onSwitchToSignup}
               >
-                Sign up
-              </Button>
+                Register profile
+              </button>
             </p>
           </div>
         </CardContent>
       </Card>
     </div>
   );
-};
-
-export default LoginPage; 
+}

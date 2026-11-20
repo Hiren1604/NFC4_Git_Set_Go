@@ -146,8 +146,8 @@ export default function NotificationsPage() {
     const newNotification: Notification = {
       id: Date.now().toString(),
       type: "technician_assignment",
-      title: "AI Assignment: Lakshmi Devi",
-      message: "AI agent has automatically assigned Lakshmi Devi to your cleaning request. Estimated cost: ₹800 (2 hours).",
+      title: "Technician Assigned: Lakshmi Devi",
+      message: "Lakshmi Devi has been automatically assigned to your cleaning request. Estimated cost: ₹800 (2 hours).",
       timestamp: new Date().toLocaleString(),
       priority: "high",
       status: "unread",
@@ -163,8 +163,8 @@ export default function NotificationsPage() {
     
     setNotifications(prev => [newNotification, ...prev]);
     toast({
-      title: "New AI Assignment",
-      description: "AI agent has assigned a technician to your issue!",
+      title: "Technician Assigned",
+      description: "A specialist has been assigned to your issue!",
       duration: 3000,
     });
   };
@@ -498,12 +498,15 @@ export default function NotificationsPage() {
           filteredNotifications.map((notification) => (
             <Card 
               key={notification.id} 
-              className={`cursor-pointer transition-all hover:shadow-md ${
-                notification.status === 'unread' ? 'border-blue-200 bg-blue-50' : ''
+              className={`cursor-pointer rounded-2xl border backdrop-blur-xl transition-all relative overflow-hidden shadow-xs hover:shadow-md hover:border-primary/40 ${
+                notification.status === 'unread'
+                  ? 'border-primary/50 bg-primary/10 dark:bg-primary/15 ring-1 ring-primary/20'
+                  : 'border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60'
               }`}
               onClick={() => handleNotificationClick(notification)}
             >
-              <CardContent className="p-6">
+              <div className={`absolute top-0 inset-x-0 h-px ${notification.status === 'unread' ? 'bg-primary' : 'bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent'}`} />
+              <CardContent className="p-5 sm:p-6">
                 <div className="flex items-start gap-4">
                   <div className={`p-2 rounded-full ${getTypeColor(notification.type)}`}>
                     {getTypeIcon(notification.type)}

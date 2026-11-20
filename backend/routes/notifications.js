@@ -184,25 +184,6 @@ router.get('/', protect, async (req, res) => {
       }
     }
 
-    // 5. Get security alerts for all users (mock for now, would come from security system)
-    if (userRole === 'resident') {
-      // Simulate security alerts based on user's building
-      const securityAlerts = [
-        {
-          id: 'security_1',
-          type: 'security_alert',
-          title: 'Security Alert',
-          message: 'Unusual activity detected in your building. Security team has been notified.',
-          timestamp: new Date().toLocaleString(),
-          priority: 'urgent',
-          status: 'unread',
-          issueId: 'security_alert_1'
-        }
-      ];
-      
-      notifications.push(...securityAlerts);
-    }
-
     // Sort notifications by timestamp (newest first)
     notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 

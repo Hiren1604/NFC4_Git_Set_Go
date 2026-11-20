@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { API_BASE_URL } from "@/constants";
+import { useState, useEffect } from "react";
+import type { AuthUser as UserType } from "@/types/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,16 +13,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
 import { BillDisputeModal } from "@/components/ui/bill-dispute-modal";
 import {
   Home,
   FileText,
-  Bell,
   CreditCard,
   Shield,
   Wrench,
-  Camera,
   AlertTriangle,
   CheckCircle,
   Clock,
@@ -28,1041 +27,653 @@ import {
   Upload,
   Calendar,
   DollarSign,
-  AlertCircle,
   User,
-  Settings,
   Plus,
-  Filter,
-  Search,
   Eye,
   MessageSquare,
   Star,
   MapPin,
   Mail,
-  X,
   Check,
   Ban,
   Flame,
   Heart,
   Car,
   Package,
-  UserCheck,
-  CalendarDays,
-  Time,
   Edit,
-  Save,
-  Trash2,
-  Image,
-  Send,
-  Download,
-  Receipt,
-  Banknote,
-  TrendingUp,
-  TrendingDown,
   Bot,
+  Sparkles,
+  ArrowRight,
+  ShieldAlert,
+  Sliders,
+  CheckCircle2,
 } from "lucide-react";
 
-export function ResidentDashboard() {
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchIssues } from "@/store/slices/issuesSlice";
+import { setActiveItem } from "@/store/slices/navigationSlice";
+
+interface ResidentDashboardProps {
+  user?: UserType;
+  onNavigate?: (item: string) => void;
+}
+
+export function ResidentDashboard({ user: propUser, onNavigate }: ResidentDashboardProps) {
+  const dispatch = useAppDispatch();
+  const reduxUser = useAppSelector((state) => state.auth.user);
+  const user = propUser || reduxUser;
+  const complaints = useAppSelector((state) => state.issues.items);
+  const loadingComplaints = useAppSelector((state) => state.issues.loading);
+
   const [selectedTab, setSelectedTab] = useState("complaints");
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
-  const [showComplaintModal, setShowComplaintModal] = useState(false);
-  const [showSecurityModal, setShowSecurityModal] = useState(false);
-  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
-  const [showBillModal, setShowBillModal] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [emergencyType, setEmergencyType] = useState("");
-  const [alertSent, setAlertSent] = useState(false);
+  const [emergencyType, setEmergencyType] = useState<"medical" | "fire" | "security">("medical");
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [sosTriggered, setSosTriggered] = useState(false);
+
+  const [showTimelineModal, setShowTimelineModal] = useState(false);
+  const [activeTimelineIssue, setActiveTimelineIssue] = useState<any>(null);
+
+  const [showProofModal, setShowProofModal] = useState(false);
+  const [proofSubmitted, setProofSubmitted] = useState(false);
+
+  const [showBookModal, setShowBookModal] = useState(false);
+  const [selectedService, setSelectedService] = useState<string>("Plumber");
+  const [selectedSlot, setSelectedSlot] = useState<string>("2:00 PM Today");
+
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
-  const [sortBy, setSortBy] = useState("date");
 
-  // Handle dispute submission
+  useEffect(() => {
+    dispatch(fetchIssues());
+  }, [dispatch]);
+
+  // Bills state
+  const [bills, setBills] = useState<any[]>([]);
+
+  // Fetch real bills for logged-in resident from MongoDB
+  useEffect(() => {
+    const fetchResidentBills = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        const response = await fetch(`${API_BASE_URL}/bills`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setBills(
+              data.map((b: any) => ({
+                id: b._id,
+                type: b.description || (b.type.charAt(0).toUpperCase() + b.type.slice(1) + " Bill"),
+                amount: b.amount,
+                dueDate: new Date(b.dueDate).toLocaleDateString("en-US", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                }),
+                status: b.status,
+                description: b.description,
+              }))
+            );
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load resident bills:", err);
+      }
+    };
+
+    fetchResidentBills();
+  }, []);
+
+  const unpaidTotal = bills
+    .filter((b) => b.status === "pending" || b.status === "disputed")
+    .reduce((sum, b) => sum + (b.amount || 0), 0);
+
+  // Handle dispute submission to backend
   const handleDisputeSubmit = async (disputeData: any) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5000/api/bills/${disputeData.billId}/dispute`, {
-        method: 'POST',
+      const response = await fetch(`${API_BASE_URL}/bills/${disputeData.billId}/dispute`, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: disputeData.type,
           description: disputeData.description || disputeData.doublePaymentDetails || disputeData.wrongSplitDetails,
           transactionId: disputeData.transactionId,
           paymentDate: disputeData.paymentDate,
-          paymentMethod: disputeData.paymentMethod
-        })
+          paymentMethod: disputeData.paymentMethod,
+        }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to submit dispute');
-      }
-
-      const result = await response.json();
-      console.log('Dispute submitted successfully:', result);
-      // You can add a toast notification here
+      // Update local state for immediate feedback
+      setBills((prev) =>
+        prev.map((b) => (b.id === disputeData.billId ? { ...b, status: "disputed" } : b))
+      );
     } catch (error) {
-      console.error('Error submitting dispute:', error);
-      // You can add error handling here
+      console.error("Dispute error:", error);
     }
   };
 
-  // Mock data with AI-determined priorities
-  const complaints = [
-    {
-      id: 1,
-      title: "Water leakage in bathroom",
-      description: "Severe water leakage from the ceiling in master bathroom, causing damage to walls and floor",
-      status: "in-progress",
-      priority: "urgent", // AI determined
-      aiPriority: "urgent",
-      aiReason: "Water damage can cause structural issues and mold growth",
-      category: "plumbing",
-      date: "2024-01-10",
-      assignedTo: "John Plumber",
-      updates: [
-        { date: "2024-01-10", message: "Issue reported and AI assigned urgent priority", status: "reported" },
-        { date: "2024-01-11", message: "Technician assigned", status: "assigned" },
-        { date: "2024-01-12", message: "Work in progress", status: "in-progress" },
-      ],
-      photo: "/placeholder.svg"
-    },
-    {
-      id: 2,
-      title: "Elevator not working",
-      description: "Elevator stuck between 3rd and 4th floor, residents trapped",
-      status: "resolved",
-      priority: "urgent", // AI determined
-      aiPriority: "urgent",
-      aiReason: "Safety issue with residents potentially trapped",
-      category: "electrical",
-      date: "2024-01-08",
-      assignedTo: "Mike Technician",
-      updates: [
-        { date: "2024-01-08", message: "Emergency reported - AI flagged as urgent safety issue", status: "reported" },
-        { date: "2024-01-08", message: "Technician arrived", status: "assigned" },
-        { date: "2024-01-08", message: "Issue resolved", status: "resolved" },
-      ],
-      photo: "/placeholder.svg"
-    },
-    {
-      id: 3,
-      title: "Broken window lock",
-      description: "Window lock in living room is broken, security concern",
-      status: "pending",
-      priority: "medium", // AI determined
-      aiPriority: "medium",
-      aiReason: "Security concern but not immediately dangerous",
-      category: "carpentry",
-      date: "2024-01-15",
-      assignedTo: "Pending",
-      updates: [
-        { date: "2024-01-15", message: "Issue reported - AI assigned medium priority", status: "reported" },
-      ],
-      photo: "/placeholder.svg"
-    },
-  ];
+  // 3-second SOS Countdown Handler
+  const startSOS = (type: "medical" | "fire" | "security") => {
+    setEmergencyType(type);
+    setShowEmergencyModal(true);
+    setSosTriggered(false);
+    setCountdown(3);
 
-  const bills = [
-    {
-      id: 1,
-      type: "Maintenance",
-      amount: 2500,
-      dueDate: "2024-01-15",
-      status: "pending",
-      description: "Monthly maintenance charges"
-    },
-    {
-      id: 2,
-      type: "Electricity",
-      amount: 1200,
-      dueDate: "2024-01-20",
-      status: "paid",
-      description: "Electricity bill for December"
-    },
-    {
-      id: 3,
-      type: "Water",
-      amount: 800,
-      dueDate: "2024-01-25",
-      status: "disputed",
-      description: "Water bill for December"
-    },
-  ];
-
-  const securityAlerts = [
-    {
-      id: 1,
-      type: "delivery",
-      visitor: "Amazon Delivery",
-      photo: "/placeholder.svg",
-      time: "2024-01-10 14:30",
-      status: "pending",
-      items: "Package for Flat A-501",
-      technician: {
-        name: "Security Guard",
-        phone: "+91 98765 43213",
-        shift: "Day Shift",
-        location: "Main Gate"
-      }
-    },
-    {
-      id: 2,
-      type: "guest",
-      visitor: "John Smith",
-      photo: "/placeholder.svg",
-      time: "2024-01-09 18:45",
-      status: "approved",
-      items: "Visiting Flat A-501",
-      technician: {
-        name: "Security Guard",
-        phone: "+91 98765 43213",
-        shift: "Day Shift",
-        location: "Main Gate"
-      }
-    },
-  ];
-
-  const maintenanceServices = [
-    { 
-      name: "Plumber", 
-      icon: Wrench, 
-      available: 3, 
-      nextSlot: "2PM Today", 
-      rate: "₹500/hour",
-      technician: {
-        name: "John Plumber",
-        phone: "+91 98765 43210",
-        rating: 4.8,
-        experience: "8 years",
-        specialization: "Plumbing"
-      }
-    },
-    { 
-      name: "Electrician", 
-      icon: AlertTriangle, 
-      available: 2, 
-      nextSlot: "4PM Today", 
-      rate: "₹600/hour",
-      technician: {
-        name: "Mike Technician",
-        phone: "+91 98765 43211",
-        rating: 4.9,
-        experience: "12 years",
-        specialization: "Electrical"
-      }
-    },
-    { 
-      name: "Carpenter", 
-      icon: Wrench, 
-      available: 1, 
-      nextSlot: "10AM Tomorrow", 
-      rate: "₹400/hour",
-      technician: {
-        name: "David Carpenter",
-        phone: "+91 98765 43214",
-        rating: 4.6,
-        experience: "6 years",
-        specialization: "Carpentry"
-      }
-    },
-    { 
-      name: "Painter", 
-      icon: Wrench, 
-      available: 0, 
-      nextSlot: "9AM Monday", 
-      rate: "₹300/hour",
-      technician: {
-        name: "Sarah Painter",
-        phone: "+91 98765 43215",
-        rating: 4.7,
-        experience: "5 years",
-        specialization: "Painting"
-      }
-    },
-  ];
-
-  const timeSlots = [
-    "9:00 AM", "10:00 AM", "11:00 AM", "2:00 PM", "3:00 PM", "4:00 PM"
-  ];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending": return "bg-yellow-100 text-yellow-800";
-      case "in-progress": return "bg-blue-100 text-blue-800";
-      case "resolved": return "bg-green-100 text-green-800";
-      case "urgent": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timer);
+          setSosTriggered(true);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "high": return "text-red-600";
-      case "medium": return "text-yellow-600";
-      case "low": return "text-green-600";
-      case "urgent": return "text-red-600";
-      default: return "text-gray-600";
-    }
-  };
-
-  const filteredComplaints = complaints.filter(complaint => {
-    if (filterStatus !== "all" && complaint.status !== filterStatus) return false;
-    if (filterCategory !== "all" && complaint.category !== filterCategory) return false;
-    return true;
-  });
-
-  const handleEmergencyAlert = () => {
-    setAlertSent(true);
-    setTimeout(() => {
-      setAlertSent(false);
-      setShowEmergencyModal(false);
-    }, 3000);
+  const cancelSOS = () => {
+    setCountdown(null);
+    setSosTriggered(false);
+    setShowEmergencyModal(false);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl mx-auto">
+      {/* Resident Greeting Banner (Glassmorphic Bento) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl p-5 sm:p-6 shadow-xs relative overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-mono uppercase text-muted-foreground">Resident Portal // Verified Resident</span>
+          </div>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+              Welcome home, {user?.name || "Resident"}
+            </h1>
+            <Badge variant="outline" className="font-mono text-xs text-primary border-primary/30">
+              {user?.building || "Tower A"} • Flat {user?.flatNumber || "501"}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Emerald Heights Community Portal • Society Notice: AGM on Sunday at 11 AM in Clubhouse.
+          </p>
+        </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Issues</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">1 urgent, 2 pending</p>
+        <Button
+          onClick={() => {
+            if (onNavigate) onNavigate("report-issue");
+            dispatch(setActiveItem("report-issue"));
+          }}
+          className="bg-primary hover:bg-primary/90 text-white text-xs h-9 px-4 rounded-xl shadow-xs shrink-0 cursor-pointer"
+        >
+          <Plus className="h-3.5 w-3.5 mr-1.5" />
+          Report Grievance
+        </Button>
+      </div>
+
+      {/* KPI Overview (Glassmorphic Bento Row) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs hover:shadow-md hover:border-primary/40 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent" />
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex items-center justify-between text-muted-foreground text-xs font-medium mb-1">
+              <span>Active Issues</span>
+              <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                <FileText className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-foreground">
+              {complaints.filter((c) => c.status !== "resolved").length}
+            </div>
+            <p className="text-[11px] text-amber-600 font-medium mt-1">In-progress repairs & tickets</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Bills</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹3,700</div>
-            <p className="text-xs text-muted-foreground">Due in 5 days</p>
+        <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs hover:shadow-md hover:border-primary/40 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent" />
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex items-center justify-between text-muted-foreground text-xs font-medium mb-1">
+              <span>Unpaid Dues</span>
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+                <CreditCard className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-foreground">
+              ₹{unpaidTotal.toLocaleString()}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {bills.filter((b) => b.status === "pending").length} pending bill(s)
+            </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Security Alerts</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">2</div>
-            <p className="text-xs text-muted-foreground">1 pending approval</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Maintenance Score</CardTitle>
-            <Home className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">92%</div>
-            <Progress value={92} className="mt-2" />
+        <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs hover:shadow-md hover:border-primary/40 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent" />
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex items-center justify-between text-muted-foreground text-xs font-medium mb-1">
+              <span>Maintenance Score</span>
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+                <CheckCircle className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-600">96%</div>
+            <Progress value={96} className="h-1.5 mt-2 bg-secondary" />
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content Tabs */}
+      {/* Responsive Tabs Navigation */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="complaints">My Complaints</TabsTrigger>
-          <TabsTrigger value="bills">Bills & Payments</TabsTrigger>
-          <TabsTrigger value="security">Security Gate</TabsTrigger>
-          <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
-          <TabsTrigger value="emergency">SOS</TabsTrigger>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto no-scrollbar -mx-2 px-2 pb-1">
+          <TabsList className="inline-flex w-auto min-w-full sm:min-w-0 sm:w-auto p-1 bg-secondary/60 rounded-xl border border-border/60 gap-1 backdrop-blur-md">
+            <TabsTrigger value="complaints" className="text-xs shrink-0 px-3 py-1.5 font-semibold">
+              Complaints ({complaints.length})
+            </TabsTrigger>
+            <TabsTrigger value="bills" className="text-xs shrink-0 px-3 py-1.5 font-semibold">
+              Bills & Pay
+            </TabsTrigger>
+            <TabsTrigger value="maintenance" className="text-xs shrink-0 px-3 py-1.5 font-semibold">
+              Book Help
+            </TabsTrigger>
+            <TabsTrigger value="emergency" className="text-xs shrink-0 px-3 py-1.5 font-bold text-destructive">
+              SOS Alert
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        {/* Complaints Tab */}
-        <TabsContent value="complaints" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">My Complaints</h2>
-            <div className="text-sm text-muted-foreground">
-              Issues are prioritized by AI agents for optimal resolution
+        {/* Tab 1: Complaints */}
+        <TabsContent value="complaints" className="space-y-4 pt-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
+            <span className="text-xs text-muted-foreground font-medium">
+              Logged society complaints & maintenance tickets
+            </span>
+            <Button
+              size="sm"
+              onClick={() => (onNavigate ? onNavigate("report-issue") : null)}
+              className="text-xs h-8 rounded-xl bg-primary hover:bg-primary/90 text-white shrink-0 cursor-pointer shadow-xs font-semibold"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Report New Grievance
+            </Button>
+          </div>
+
+          {loadingComplaints ? (
+            <div className="p-8 text-center text-xs text-muted-foreground rounded-2xl border border-border/60 bg-secondary/20">
+              <span className="inline-block animate-spin mr-2">⚡</span> Loading grievances from society database...
             </div>
-          </div>
-
-          {/* Filters */}
-          <div className="flex gap-4">
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="in-progress">In Progress</SelectItem>
-                <SelectItem value="resolved">Resolved</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="plumbing">Plumbing</SelectItem>
-                <SelectItem value="electrical">Electrical</SelectItem>
-                <SelectItem value="carpentry">Carpentry</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="date">Date</SelectItem>
-                <SelectItem value="priority">Priority</SelectItem>
-                <SelectItem value="status">Status</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Complaints List */}
-          <div className="space-y-4">
-            {filteredComplaints.map((complaint) => (
-              <Card key={complaint.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex gap-4 flex-1">
-                      <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100">
-                        <img src={complaint.photo} alt="Issue" className="w-full h-full object-cover" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-lg">{complaint.title}</h3>
-                          <Badge className={getStatusColor(complaint.status)}>
-                            {complaint.status}
-                          </Badge>
-                          <Badge variant="outline" className={getPriorityColor(complaint.priority)}>
-                            {complaint.priority}
-                          </Badge>
-                          {complaint.aiPriority && (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                              <Bot className="h-3 w-3 mr-1" />
-                              AI Priority
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-muted-foreground mb-2">{complaint.description}</p>
-                        
-                        {/* AI Analysis */}
-                        {complaint.aiReason && (
-                          <Alert className="mb-3">
-                            <Bot className="h-4 w-4" />
-                            <AlertDescription>
-                              <strong>AI Analysis:</strong> {complaint.aiReason}
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                        
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>Assigned to: {complaint.assignedTo}</span>
-                          <span>Date: {complaint.date}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-2" />
-                      View Timeline
-                    </Button>
-                  </div>
-
-                  {/* Timeline */}
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="font-medium mb-3">Timeline</h4>
-                    <div className="space-y-2">
-                      {complaint.updates.map((update, idx) => (
-                        <div key={idx} className="flex items-center gap-3 text-sm">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          <span className="text-muted-foreground">{update.date}</span>
-                          <span>{update.message}</span>
-                          <Badge variant="outline" className="text-xs">
-                            {update.status}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        {/* Bills Tab */}
-        <TabsContent value="bills" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Bills & Payments</h2>
-            <Button onClick={() => setShowBillModal(true)}>
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Payment Proof
-            </Button>
-          </div>
-
-          <div className="grid gap-4">
-            {bills.map((bill) => (
-              <Card key={bill.id}>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold text-lg">{bill.type}</h3>
-                        <Badge className={getStatusColor(bill.status)}>
-                          {bill.status}
-                        </Badge>
-                      </div>
-                      <p className="text-muted-foreground mb-2">{bill.description}</p>
-                      <p className="text-sm text-muted-foreground">Due: {bill.dueDate}</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold mb-2">₹{bill.amount}</div>
-                      <div className="flex gap-2">
-                        {bill.status === "pending" && (
-                          <>
-                            <Button size="sm">
-                              <DollarSign className="h-4 w-4 mr-2" />
-                              Pay Bill
-                            </Button>
-                            <BillDisputeModal 
-                              bill={bill} 
-                              onDisputeSubmit={handleDisputeSubmit}
-                            />
-                          </>
-                        )}
-                        {bill.status === "disputed" && (
-                          <Button variant="outline" size="sm">
-                            <MessageSquare className="h-4 w-4 mr-2" />
-                            View Dispute
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        {/* Security Tab */}
-        <TabsContent value="security" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Security Gate Interface</h2>
-            <Button onClick={() => setShowSecurityModal(true)}>
-              <Calendar className="h-4 w-4 mr-2" />
-              Pre-schedule Delivery
-            </Button>
-          </div>
-
-          <div className="space-y-4">
-            {securityAlerts.map((alert) => (
-              <Card key={alert.id}>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-16 w-16">
-                      <AvatarImage src={alert.photo} />
-                      <AvatarFallback>{alert.visitor.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg">{alert.visitor}</h3>
-                      <p className="text-muted-foreground">{alert.items}</p>
-                      <p className="text-sm text-muted-foreground">{alert.time}</p>
-                      
-                      {/* Technician Info */}
-                      {alert.technician && (
-                        <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
-                          <div className="flex items-center gap-2 mb-1">
-                            <User className="h-3 w-3" />
-                            <span className="font-medium">{alert.technician.name}</span>
-                          </div>
-                          <div className="space-y-1 text-muted-foreground">
-                            <div>Phone: {alert.technician.phone}</div>
-                            <div>Shift: {alert.technician.shift}</div>
-                            <div>Location: {alert.technician.location}</div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      {alert.status === "pending" ? (
-                        <>
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                            <Check className="h-4 w-4 mr-2" />
-                            Allow
-                          </Button>
-                                                     <Button size="sm" variant="outline">
-                             <Clock className="h-4 w-4 mr-2" />
-                             Delay
-                           </Button>
-                          <Button size="sm" variant="outline" className="text-red-600">
-                            <Ban className="h-4 w-4 mr-2" />
-                            Deny
-                          </Button>
-                        </>
-                      ) : (
-                        <Badge className={getStatusColor(alert.status)}>
-                          {alert.status}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        {/* Maintenance Tab */}
-        <TabsContent value="maintenance" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Book Maintenance Help</h2>
-            <Button onClick={() => setShowMaintenanceModal(true)}>
-              <Calendar className="h-4 w-4 mr-2" />
-              Book Appointment
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {maintenanceServices.map((service, idx) => (
-              <Card key={idx} className="text-center">
-                <CardHeader className="pb-2">
-                  <service.icon className="h-8 w-8 mx-auto text-primary mb-2" />
-                  <CardTitle className="text-sm">{service.name}</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <p className="text-xs text-muted-foreground mb-2">
-                    {service.available} available
-                  </p>
-                  <p className="text-xs font-medium mb-2">
-                    Next: {service.nextSlot}
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    {service.rate}
-                  </p>
-                  
-                  {/* Technician Info */}
-                  {service.technician && (
-                    <div className="text-xs text-muted-foreground mb-3">
-                      <div className="flex items-center gap-1 mb-1">
-                        <User className="h-3 w-3" />
-                        <span className="font-medium">{service.technician.name}</span>
-                      </div>
-                      <div className="space-y-1">
-                        <div>⭐ {service.technician.rating}</div>
-                        <div>{service.technician.experience}</div>
-                      </div>
-                    </div>
-                  )}
-                  <Button 
-                    size="sm" 
-                    variant={service.available > 0 ? "default" : "secondary"}
-                    disabled={service.available === 0}
-                    className="w-full"
-                  >
-                    Book Now
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Available Time Slots */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Available Time Slots</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                {timeSlots.map((time, idx) => (
-                  <Button 
-                    key={idx} 
-                    variant="outline" 
-                    size="sm"
-                    className="text-xs"
-                  >
-                    {time}
-                  </Button>
-                ))}
+          ) : complaints.length === 0 ? (
+            <Card className="rounded-2xl border border-dashed border-border/80 bg-white/50 dark:bg-slate-900/40 p-8 text-center space-y-3">
+              <div className="h-12 w-12 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="h-6 w-6" />
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Emergency Tab */}
-        <TabsContent value="emergency" className="space-y-6">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-4">Emergency SOS</h2>
-            <p className="text-muted-foreground mb-6">
-              Use this in case of emergency situations
-            </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto">
-              <Button 
-                className="h-32 bg-red-600 hover:bg-red-700 text-white flex-col"
+              <div>
+                <h4 className="font-bold text-sm text-foreground">No active grievances</h4>
+                <p className="text-xs text-muted-foreground mt-0.5 max-w-sm mx-auto">
+                  All utilities and fixtures in your flat are operating normally. If something breaks, report it and our AI will immediately dispatch a technician.
+                </p>
+              </div>
+              <Button
+                size="sm"
                 onClick={() => {
-                  setEmergencyType("medical");
-                  setShowEmergencyModal(true);
+                  if (onNavigate) onNavigate("report-issue");
+                  dispatch(setActiveItem("report-issue"));
                 }}
+                className="bg-primary hover:bg-primary/90 text-white text-xs h-8 px-4 rounded-xl shadow-xs font-semibold cursor-pointer"
               >
-                <Heart className="h-8 w-8 mb-2" />
-                Medical Emergency
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                Report a Grievance
               </Button>
-              
-                             <Button 
-                 className="h-32 bg-orange-600 hover:bg-orange-700 text-white flex-col"
-                 onClick={() => {
-                   setEmergencyType("fire");
-                   setShowEmergencyModal(true);
-                 }}
-               >
-                 <Flame className="h-8 w-8 mb-2" />
-                 Fire Emergency
-               </Button>
-              
-                             <Button 
-                 className="h-32 bg-blue-600 hover:bg-blue-700 text-white flex-col"
-                 onClick={() => {
-                   setEmergencyType("theft");
-                   setShowEmergencyModal(true);
-                 }}
-               >
-                 <Shield className="h-8 w-8 mb-2" />
-                 Security/Theft
-               </Button>
-            </div>
-          </div>
+            </Card>
+          ) : (
+            complaints.map((issue) => {
+              const ticketId = `#ISS-${issue._id ? issue._id.slice(-6).toUpperCase() : issue.ticketId || issue.id}`;
+              const assignedName = typeof issue.assignedTo === "object" && issue.assignedTo?.name ? issue.assignedTo.name : typeof issue.assignedTo === "string" ? issue.assignedTo : "On-Duty Auto-Assigned";
+              const assignedPhone = typeof issue.assignedTo === "object" ? issue.assignedTo?.phone : null;
+              const dateStr = issue.createdAt ? new Date(issue.createdAt).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : issue.date || "Today";
+
+              return (
+                <Card key={issue._id || issue.id} className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs relative overflow-hidden">
+                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+                  <CardContent className="p-5">
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                      <div className="space-y-2 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-muted-foreground">{ticketId}</span>
+                          <h3 className="font-bold text-sm text-foreground">{issue.title}</h3>
+                          <Badge
+                            variant={issue.priority === "urgent" ? "destructive" : "secondary"}
+                            className="text-[10px] uppercase font-mono h-4 px-1.5"
+                          >
+                            {issue.priority}
+                          </Badge>
+                          <Badge className="bg-primary/10 text-primary hover:bg-primary/20 text-[10px] capitalize font-medium">
+                            {issue.status}
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px] capitalize">
+                            {issue.category}
+                          </Badge>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground leading-relaxed">{issue.description}</p>
+
+                        {(issue.aiReason || issue.aiAnalysis?.reasoning) && (
+                          <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 text-xs text-primary flex items-start gap-2.5">
+                            <Bot className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+                            <p className="leading-relaxed">
+                              <strong className="font-semibold text-foreground">AI Triage Note: </strong>
+                              {issue.aiReason || issue.aiAnalysis?.reasoning}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-1">
+                          <span>
+                            Assigned to: <strong className="text-foreground">{assignedName}</strong>
+                            {assignedPhone && <span className="ml-1 text-[11px] font-mono text-muted-foreground">({assignedPhone})</span>}
+                          </span>
+                          <span>Filed: {dateStr}</span>
+                        </div>
+                      </div>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs h-8 shrink-0 rounded-lg border-border/80"
+                        onClick={() => {
+                          setActiveTimelineIssue(issue);
+                          setShowTimelineModal(true);
+                        }}
+                      >
+                        <Eye className="h-3.5 w-3.5 mr-1 text-primary" />
+                        Audit Timeline
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
         </TabsContent>
 
-        {/* Profile Tab */}
-        <TabsContent value="profile" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Profile</h2>
-            <Button onClick={() => setShowProfileModal(true)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Profile
-            </Button>
-          </div>
+        {/* Tab 2: Bills & Payments */}
+        <TabsContent value="bills" className="space-y-4 pt-2">
+          {bills.map((bill) => (
+            <Card key={bill.id} className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs relative overflow-hidden">
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
+              <CardContent className="p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-sm text-foreground">{bill.type}</h4>
+                      <Badge
+                        variant={
+                          bill.status === "paid"
+                            ? "default"
+                            : bill.status === "disputed"
+                            ? "destructive"
+                            : "secondary"
+                        }
+                        className="text-[10px] capitalize"
+                      >
+                        {bill.status}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{bill.description}</p>
+                    <span className="text-[11px] font-mono text-muted-foreground">Due: {bill.dueDate}</span>
+                  </div>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-6">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src="/placeholder.svg" />
-                  <AvatarFallback className="text-2xl">JD</AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold mb-2">John Doe</h3>
-                  <div className="space-y-2 text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      <span>Flat A-501, Building A</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
-                      <span>+91 98765 43210</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      <span>john.doe@email.com</span>
+                  <div className="text-right shrink-0">
+                    <div className="text-lg font-bold font-mono text-foreground">₹{bill.amount}</div>
+                    <div className="flex items-center gap-2 mt-2">
+                      {bill.status === "pending" && (
+                        <>
+                          <Button
+                            size="sm"
+                            className="bg-primary hover:bg-primary/90 text-white text-xs h-8"
+                            onClick={() => {
+                              setBills((prev) =>
+                                prev.map((b) => (b.id === bill.id ? { ...b, status: "paid" } : b))
+                              );
+                            }}
+                          >
+                            Pay via UPI / Card
+                          </Button>
+                          <BillDisputeModal bill={bill} onDisputeSubmit={handleDisputeSubmit} />
+                        </>
+                      )}
+                      {bill.status === "disputed" && (
+                        <Badge variant="outline" className="text-destructive border-destructive/40 text-xs py-1">
+                          Under Arbitration
+                        </Badge>
+                      )}
+                      {bill.status === "paid" && (
+                        <Badge className="bg-emerald-500 text-white text-xs py-1">
+                          Payment Verified
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ))}
+        </TabsContent>
+
+        {/* Tab 3: Book Maintenance */}
+        <TabsContent value="maintenance" className="space-y-4 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card className="border-border hover:border-primary/50 transition-colors">
+              <CardContent className="p-5 text-center space-y-3">
+                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mx-auto">
+                  <Wrench className="h-6 w-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-foreground">Plumber</h4>
+                  <p className="text-xs text-muted-foreground">Pipe repair, sanitary fittings</p>
+                  <p className="text-xs font-mono font-semibold text-primary mt-1">₹500 / hr</p>
+                </div>
+                <Button
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => {
+                    setSelectedService("Plumber");
+                    setShowBookModal(true);
+                  }}
+                >
+                  Book Appointment
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border hover:border-primary/50 transition-colors">
+              <CardContent className="p-5 text-center space-y-3">
+                <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600 mx-auto">
+                  <Sparkles className="h-6 w-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-foreground">Electrician</h4>
+                  <p className="text-xs text-muted-foreground">MCB tripping, appliance wiring</p>
+                  <p className="text-xs font-mono font-semibold text-primary mt-1">₹600 / hr</p>
+                </div>
+                <Button
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => {
+                    setSelectedService("Electrician");
+                    setShowBookModal(true);
+                  }}
+                >
+                  Book Appointment
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border hover:border-primary/50 transition-colors">
+              <CardContent className="p-5 text-center space-y-3">
+                <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600 mx-auto">
+                  <Home className="h-6 w-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-foreground">Carpenter</h4>
+                  <p className="text-xs text-muted-foreground">Door lock repair, furniture fixes</p>
+                  <p className="text-xs font-mono font-semibold text-primary mt-1">₹450 / hr</p>
+                </div>
+                <Button
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => {
+                    setSelectedService("Carpenter");
+                    setShowBookModal(true);
+                  }}
+                >
+                  Book Appointment
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Tab 5: Emergency SOS (High Contrast, 3s countdown) */}
+        <TabsContent value="emergency" className="space-y-4 pt-2">
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center space-y-4">
+            <ShieldAlert className="h-12 w-12 text-destructive mx-auto" />
+            <div>
+              <h2 className="text-xl font-bold text-destructive">Emergency Society SOS Broadcast</h2>
+              <p className="text-xs text-muted-foreground max-w-md mx-auto mt-1">
+                Triggers high-priority intercom sirens at security gatehouse, alerts on-duty doctor/guard, and flashes emergency notification to society administration.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-xl mx-auto pt-2">
+              <Button
+                className="h-24 bg-red-600 hover:bg-red-700 text-white flex-col gap-2 rounded-xl"
+                onClick={() => startSOS("medical")}
+              >
+                <Heart className="h-6 w-6" />
+                <span className="font-bold text-sm">Medical Urgent</span>
+              </Button>
+
+              <Button
+                className="h-24 bg-amber-600 hover:bg-amber-700 text-white flex-col gap-2 rounded-xl"
+                onClick={() => startSOS("fire")}
+              >
+                <Flame className="h-6 w-6" />
+                <span className="font-bold text-sm">Fire Hazard</span>
+              </Button>
+
+              <Button
+                className="h-24 bg-blue-600 hover:bg-blue-700 text-white flex-col gap-2 rounded-xl"
+                onClick={() => startSOS("security")}
+              >
+                <Shield className="h-6 w-6" />
+                <span className="font-bold text-sm">Security / Intruder</span>
+              </Button>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
 
-      {/* Emergency Modal */}
+      {/* Emergency Confirmation Modal with Countdown */}
       <Dialog open={showEmergencyModal} onOpenChange={setShowEmergencyModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md text-center p-6 rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-red-600 flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              Emergency Alert
+            <DialogTitle className="text-destructive font-bold text-lg flex items-center justify-center gap-2">
+              <ShieldAlert className="h-5 w-5" />
+              Confirming {emergencyType.toUpperCase()} Emergency
             </DialogTitle>
           </DialogHeader>
-          {alertSent ? (
-            <div className="text-center py-8">
-              <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Alert Sent!</h3>
-              <p className="text-muted-foreground">
-                Emergency services have been notified. Help is on the way.
+
+          {countdown !== null ? (
+            <div className="py-6 space-y-4">
+              <div className="h-20 w-20 rounded-full border-4 border-destructive flex items-center justify-center mx-auto text-3xl font-mono font-bold text-destructive animate-pulse">
+                {countdown}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Broadcasting alert to Gatehouse in {countdown} seconds. Click Cancel if pressed accidentally.
               </p>
+              <Button variant="outline" className="w-full text-xs" onClick={cancelSOS}>
+                Cancel SOS Broadcast
+              </Button>
             </div>
-          ) : (
-            <div className="space-y-4">
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  This will immediately notify security, emergency services, and building management.
-                </AlertDescription>
-              </Alert>
-              <div className="space-y-2">
-                <Label>Emergency Type: {emergencyType}</Label>
-                <Button 
-                  className="w-full bg-red-600 hover:bg-red-700"
-                  onClick={handleEmergencyAlert}
-                >
-                  <Phone className="h-4 w-4 mr-2" />
-                  Send Emergency Alert
-                </Button>
+          ) : sosTriggered ? (
+            <div className="py-6 space-y-3">
+              <CheckCircle className="h-16 w-16 text-emerald-500 mx-auto" />
+              <h3 className="font-bold text-base text-foreground">Alert Dispatched</h3>
+              <p className="text-xs text-muted-foreground">
+                Emergency response team acknowledged distress call. Assistance dispatched to Flat {user?.flatNumber || "101"}.
+              </p>
+              <Button size="sm" onClick={() => setShowEmergencyModal(false)} className="text-xs mt-2">
+                Close
+              </Button>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      {/* Timeline Audit Dialog */}
+      <Dialog open={showTimelineModal} onOpenChange={setShowTimelineModal}>
+        <DialogContent className="sm:max-w-lg rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2">
+              <Clock className="h-4 w-4 text-primary" />
+              Grievance Lifecycle & Audit Timeline
+            </DialogTitle>
+          </DialogHeader>
+
+          {activeTimelineIssue && (
+            <div className="space-y-4 py-2 text-xs">
+              <div className="p-3.5 rounded-xl bg-secondary/50 border border-border/80">
+                <span className="font-mono text-muted-foreground text-[10px]">
+                  #ISS-{activeTimelineIssue._id ? activeTimelineIssue._id.slice(-6).toUpperCase() : activeTimelineIssue.ticketId || activeTimelineIssue.id}
+                </span>
+                <h4 className="font-bold text-sm text-foreground mt-0.5">{activeTimelineIssue.title}</h4>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Badge variant="outline" className="text-[10px] capitalize">
+                    {activeTimelineIssue.category}
+                  </Badge>
+                  <Badge className="text-[10px] capitalize bg-primary/10 text-primary">
+                    {activeTimelineIssue.status}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="relative border-l-2 border-primary/30 ml-3 pl-6 space-y-4 pt-1">
+                {(activeTimelineIssue.timeline || activeTimelineIssue.updates || [
+                  {
+                    message: "Issue registered in database",
+                    timestamp: activeTimelineIssue.createdAt,
+                  },
+                ]).map((update: any, idx: number) => {
+                  const timeStr = update.timestamp
+                    ? new Date(update.timestamp).toLocaleString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : update.date || "Initial";
+
+                  return (
+                    <div key={idx} className="relative">
+                      <div className="absolute -left-[31px] top-0.5 h-3.5 w-3.5 rounded-full bg-primary ring-4 ring-background" />
+                      <span className="font-mono text-muted-foreground text-[10px]">{timeStr}</span>
+                      <p className="font-semibold text-foreground mt-0.5 text-xs">{update.message}</p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Complaint Modal */}
-      <Dialog open={showComplaintModal} onOpenChange={setShowComplaintModal}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Raise a Complaint</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Category</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="plumbing">Plumbing</SelectItem>
-                    <SelectItem value="electrical">Electrical</SelectItem>
-                    <SelectItem value="carpentry">Carpentry</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Urgency</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select urgency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div>
-              <Label>Title</Label>
-              <Input placeholder="Brief description of the issue" />
-            </div>
-            
-            <div>
-              <Label>Description</Label>
-              <Textarea placeholder="Detailed description of the issue" rows={4} />
-            </div>
-            
-            <div>
-              <Label>Upload Photo</Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <Camera className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-muted-foreground">Click to upload photo</p>
-              </div>
-            </div>
-
-            {/* AI Suggestions */}
-            <Alert>
-              <Bot className="h-4 w-4" />
-              <AlertDescription>
-                AI Suggestion: This appears to be a plumbing issue with high urgency. 
-                Recommended category: Plumbing, Priority: High
-              </AlertDescription>
-            </Alert>
-
-            <div className="flex gap-2">
-              <Button className="flex-1">Submit Complaint</Button>
-              <Button variant="outline" onClick={() => setShowComplaintModal(false)}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Security Modal */}
-      <Dialog open={showSecurityModal} onOpenChange={setShowSecurityModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Pre-schedule Delivery</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Delivery Company</Label>
-              <Input placeholder="e.g., Amazon, Flipkart" />
-            </div>
-            <div>
-              <Label>Expected Date</Label>
-              <Input type="date" />
-            </div>
-            <div>
-              <Label>Expected Time</Label>
-              <Input type="time" />
-            </div>
-            <div>
-              <Label>Contact Number</Label>
-              <Input placeholder="Delivery person's number" />
-            </div>
-            <div className="flex gap-2">
-              <Button className="flex-1">Schedule</Button>
-              <Button variant="outline" onClick={() => setShowSecurityModal(false)}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Maintenance Modal */}
-      <Dialog open={showMaintenanceModal} onOpenChange={setShowMaintenanceModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Book Maintenance Service</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Service Type</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select service" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="plumber">Plumber</SelectItem>
-                  <SelectItem value="electrician">Electrician</SelectItem>
-                  <SelectItem value="carpenter">Carpenter</SelectItem>
-                  <SelectItem value="painter">Painter</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Date</Label>
-              <Input type="date" />
-            </div>
-            <div>
-              <Label>Time Slot</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timeSlots.map((time, idx) => (
-                    <SelectItem key={idx} value={time}>{time}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Description</Label>
-              <Textarea placeholder="Describe the issue" rows={3} />
-            </div>
-            <div className="flex gap-2">
-              <Button className="flex-1">Confirm Booking</Button>
-              <Button variant="outline" onClick={() => setShowMaintenanceModal(false)}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Bill Modal */}
-      <Dialog open={showBillModal} onOpenChange={setShowBillModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Upload Payment Proof</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
-              <Button variant="outline" className="h-20 flex-col">
-                <Camera className="h-6 w-6 mb-2" />
-                Bank SMS Screenshot
-              </Button>
-              <Button variant="outline" className="h-20 flex-col">
-                <Receipt className="h-6 w-6 mb-2" />
-                Payment Receipt
-              </Button>
-              <Button variant="outline" className="h-20 flex-col">
-                <Banknote className="h-6 w-6 mb-2" />
-                UPI Transaction
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              <Button className="flex-1">Upload</Button>
-              <Button variant="outline" onClick={() => setShowBillModal(false)}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Profile Modal */}
-      <Dialog open={showProfileModal} onOpenChange={setShowProfileModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Profile</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="text-center">
-              <Avatar className="h-20 w-20 mx-auto mb-4">
-                <AvatarImage src="/placeholder.svg" />
-                <AvatarFallback className="text-xl">JD</AvatarFallback>
-              </Avatar>
-              <Button variant="outline" size="sm">
-                <Edit className="h-4 w-4 mr-2" />
-                Change Photo
-              </Button>
-            </div>
-            <div>
-              <Label>Full Name</Label>
-              <Input defaultValue="John Doe" />
-            </div>
-            <div>
-              <Label>Flat Number</Label>
-              <Input defaultValue="A-501" />
-            </div>
-            <div>
-              <Label>Building</Label>
-              <Input defaultValue="Building A" />
-            </div>
-            <div>
-              <Label>Phone Number</Label>
-              <Input defaultValue="+91 98765 43210" />
-            </div>
-            <div>
-              <Label>Email</Label>
-              <Input defaultValue="john.doe@email.com" />
-            </div>
-            <div className="flex gap-2">
-              <Button className="flex-1">
-                <Save className="h-4 w-4 mr-2" />
-                Save Changes
-              </Button>
-              <Button variant="outline" onClick={() => setShowProfileModal(false)}>
-                Cancel
-              </Button>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
     </div>

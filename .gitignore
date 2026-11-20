@@ -150,3 +150,9 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+# Local configuration and browser artifacts
+.env
+.env.*
+!.env.example
+.playwright-mcp/
+.playwright-cli/

@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-const JWT_SECRET = 'w2MkhGnIM5i1VsowlEYnVBLgCIqgGh3dGDBPehLhvr0';
+const { jwtSecret } = require('../config/env');
 
 // Protect routes - require authentication
 const protect = async (req, res, next) => {
@@ -9,7 +9,7 @@ const protect = async (req, res, next) => {
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, jwtSecret(), { algorithms: ['HS256'] });
       req.user = await User.findById(decoded.id).select('-password');
       if (!req.user) return res.status(401).json({ error: 'User not found' });
       if (!req.user.isActive) return res.status(401).json({ error: 'User account is deactivated' });
@@ -40,7 +40,7 @@ const authorize = (...roles) => {
 // Generate JWT token
 const generateToken = (id) => {
   const expiresIn = '7d';
-  return jwt.sign({ id }, JWT_SECRET, { expiresIn });
+  return jwt.sign({ id }, jwtSecret(), { expiresIn, algorithm: 'HS256' });
 };
 
 module.exports = { protect, authorize, generateToken }; 

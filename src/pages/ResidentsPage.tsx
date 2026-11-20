@@ -193,23 +193,24 @@ export default function ResidentsPage() {
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <Card>
-        <CardContent className="p-6">
+      {/* Filters and Search (Glassmorphic Bento) */}
+      <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs relative overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+        <CardContent className="p-5 sm:p-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-text-muted" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by name, email, flat number, or phone..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 rounded-xl bg-background/60"
                 />
               </div>
             </div>
             <Select value={buildingFilter} onValueChange={setBuildingFilter}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-40 rounded-xl bg-background/60">
                 <SelectValue placeholder="Building" />
               </SelectTrigger>
               <SelectContent>
@@ -220,7 +221,7 @@ export default function ResidentsPage() {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-40 rounded-xl bg-background/60">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -234,54 +235,62 @@ export default function ResidentsPage() {
         </CardContent>
       </Card>
 
-      {/* Stats Cards */}
+      {/* Stats Cards (Glassmorphic Bento Grid) */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card>
+        <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs relative overflow-hidden group hover:border-primary/40 transition-all">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent" />
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-text-primary">{residents.length}</div>
-            <div className="text-sm text-text-secondary">Total Residents</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-foreground">{residents.length}</div>
+            <div className="text-xs text-muted-foreground mt-1">Total Residents</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs relative overflow-hidden group hover:border-emerald-500/40 transition-all">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-status-resolved">{residents.filter(r => r.status === 'active').length}</div>
-            <div className="text-sm text-text-secondary">Active</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-500">{residents.filter(r => r.status === 'active').length}</div>
+            <div className="text-xs text-muted-foreground mt-1">Active</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs relative overflow-hidden group hover:border-amber-500/40 transition-all">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-status-pending">{residents.filter(r => r.status === 'inactive').length}</div>
-            <div className="text-sm text-text-secondary">Inactive</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-amber-500">{residents.filter(r => r.status === 'inactive').length}</div>
+            <div className="text-xs text-muted-foreground mt-1">Inactive</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs relative overflow-hidden group hover:border-rose-500/40 transition-all">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-rose-500/30 to-transparent" />
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-status-urgent">{residents.reduce((acc, r) => acc + r.activeIssues, 0)}</div>
-            <div className="text-sm text-text-secondary">Active Issues</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-rose-500">{residents.reduce((acc, r) => acc + r.activeIssues, 0)}</div>
+            <div className="text-xs text-muted-foreground mt-1">Active Issues</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs relative overflow-hidden group hover:border-primary/40 transition-all">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-status-progress">{residents.reduce((acc, r) => acc + r.pendingBills, 0)}</div>
-            <div className="text-sm text-text-secondary">Pending Bills</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-primary">{residents.reduce((acc, r) => acc + r.pendingBills, 0)}</div>
+            <div className="text-xs text-muted-foreground mt-1">Pending Bills</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Residents Tabs */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all">All ({filteredResidents.length})</TabsTrigger>
-          <TabsTrigger value="active">Active ({getResidentsByStatus('active').length})</TabsTrigger>
-          <TabsTrigger value="inactive">Inactive ({getResidentsByStatus('inactive').length})</TabsTrigger>
-          <TabsTrigger value="issues">With Issues ({residents.filter(r => r.activeIssues > 0).length})</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto no-scrollbar -mx-2 px-2 pb-1">
+          <TabsList className="inline-flex w-auto min-w-full sm:min-w-0 sm:w-auto p-1 bg-secondary/60 rounded-xl border border-border/60 gap-1 backdrop-blur-md">
+            <TabsTrigger value="all" className="text-xs shrink-0 px-3 py-1.5">All ({filteredResidents.length})</TabsTrigger>
+            <TabsTrigger value="active" className="text-xs shrink-0 px-3 py-1.5">Active ({getResidentsByStatus('active').length})</TabsTrigger>
+            <TabsTrigger value="inactive" className="text-xs shrink-0 px-3 py-1.5">Inactive ({getResidentsByStatus('inactive').length})</TabsTrigger>
+            <TabsTrigger value="issues" className="text-xs shrink-0 px-3 py-1.5">With Issues ({residents.filter(r => r.activeIssues > 0).length})</TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value={selectedTab} className="space-y-4">
+        <TabsContent value={selectedTab} className="space-y-4 pt-2">
           {/* Residents Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
             {(selectedTab === "issues" ? residents.filter(r => r.activeIssues > 0) : getResidentsByStatus(selectedTab)).map((resident) => (
-              <Card key={resident.id} className="hover:shadow-md transition-shadow">
+              <Card key={resident.id} className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs hover:border-primary/40 hover:shadow-md transition-all relative overflow-hidden">
+                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-4">

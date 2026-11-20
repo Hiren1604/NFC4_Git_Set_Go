@@ -15,7 +15,7 @@ if not api_key:
     api_key = "your-gemini-api-key-here"
 
 llm = LLM(
-    model="gemini/gemini-2.0-flash",
+    model="gemini/gemini-3.8-flash",
     temperature=0.1,
     api_key=api_key
 )

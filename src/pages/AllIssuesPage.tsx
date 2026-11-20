@@ -195,23 +195,24 @@ export default function AllIssuesPage() {
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <Card>
-        <CardContent className="p-6">
+      {/* Filters and Search (Glassmorphic Bento) */}
+      <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs relative overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+        <CardContent className="p-5 sm:p-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-text-muted" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search issues by title, description, or ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 rounded-xl bg-background/60"
                 />
               </div>
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-40 rounded-xl bg-background/60">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -223,7 +224,7 @@ export default function AllIssuesPage() {
               </SelectContent>
             </Select>
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-40 rounded-xl bg-background/60">
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
               <SelectContent>
@@ -238,53 +239,61 @@ export default function AllIssuesPage() {
         </CardContent>
       </Card>
 
-      {/* Stats Cards */}
+      {/* Stats Cards (Glassmorphic Bento Grid) */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card>
+        <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs relative overflow-hidden group hover:border-primary/40 transition-all">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent" />
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-text-primary">{issues.length}</div>
-            <div className="text-sm text-text-secondary">Total Issues</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-foreground">{issues.length}</div>
+            <div className="text-xs text-muted-foreground mt-1">Total Issues</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs relative overflow-hidden group hover:border-amber-500/40 transition-all">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-status-pending">{issues.filter(i => i.status === 'pending').length}</div>
-            <div className="text-sm text-text-secondary">Pending</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-amber-500">{issues.filter(i => i.status === 'pending').length}</div>
+            <div className="text-xs text-muted-foreground mt-1">Pending</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs relative overflow-hidden group hover:border-primary/40 transition-all">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-status-progress">{issues.filter(i => i.status === 'in-progress').length}</div>
-            <div className="text-sm text-text-secondary">In Progress</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-primary">{issues.filter(i => i.status === 'in-progress').length}</div>
+            <div className="text-xs text-muted-foreground mt-1">In Progress</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs relative overflow-hidden group hover:border-emerald-500/40 transition-all">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-status-resolved">{issues.filter(i => i.status === 'resolved').length}</div>
-            <div className="text-sm text-text-secondary">Resolved</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-500">{issues.filter(i => i.status === 'resolved').length}</div>
+            <div className="text-xs text-muted-foreground mt-1">Resolved</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs relative overflow-hidden group hover:border-rose-500/40 transition-all">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-rose-500/30 to-transparent" />
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-status-urgent">{issues.filter(i => i.priority === 'urgent').length}</div>
-            <div className="text-sm text-text-secondary">Urgent</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-rose-500">{issues.filter(i => i.priority === 'urgent').length}</div>
+            <div className="text-xs text-muted-foreground mt-1">Urgent Safety</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Issues Tabs */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="all">All ({filteredIssues.length})</TabsTrigger>
-          <TabsTrigger value="pending">Pending ({getIssuesByStatus('pending').length})</TabsTrigger>
-          <TabsTrigger value="in-progress">In Progress ({getIssuesByStatus('in-progress').length})</TabsTrigger>
-          <TabsTrigger value="assigned">Assigned ({getIssuesByStatus('assigned').length})</TabsTrigger>
-          <TabsTrigger value="resolved">Resolved ({getIssuesByStatus('resolved').length})</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto no-scrollbar -mx-2 px-2 pb-1">
+          <TabsList className="inline-flex w-auto min-w-full sm:min-w-0 sm:w-auto p-1 bg-secondary/60 rounded-xl border border-border/60 gap-1 backdrop-blur-md">
+            <TabsTrigger value="all" className="text-xs shrink-0 px-3 py-1.5">All ({filteredIssues.length})</TabsTrigger>
+            <TabsTrigger value="pending" className="text-xs shrink-0 px-3 py-1.5">Pending ({getIssuesByStatus('pending').length})</TabsTrigger>
+            <TabsTrigger value="in-progress" className="text-xs shrink-0 px-3 py-1.5">In Progress ({getIssuesByStatus('in-progress').length})</TabsTrigger>
+            <TabsTrigger value="assigned" className="text-xs shrink-0 px-3 py-1.5">Assigned ({getIssuesByStatus('assigned').length})</TabsTrigger>
+            <TabsTrigger value="resolved" className="text-xs shrink-0 px-3 py-1.5">Resolved ({getIssuesByStatus('resolved').length})</TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value={selectedTab} className="space-y-4">
+        <TabsContent value={selectedTab} className="space-y-4 pt-2">
           {getIssuesByStatus(selectedTab).map((issue) => (
-            <Card key={issue.id} className="hover:shadow-md transition-shadow">
+            <Card key={issue.id} className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs hover:border-primary/40 hover:shadow-md transition-all relative overflow-hidden">
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">

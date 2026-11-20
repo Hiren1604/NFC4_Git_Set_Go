@@ -41,7 +41,6 @@ import {
   Activity,
   Award,
   Briefcase,
-  Tool,
   HardHat,
   Cog,
   Check,
@@ -173,7 +172,7 @@ export function TechniciansPage() {
       priority: "urgent",
       status: "pending",
       createdAt: "2024-01-15T10:30:00Z",
-      aiAgent: "MaintenanceAI"
+      aiAgent: "Maintenance Dispatch"
     },
     {
       id: "2",
@@ -186,7 +185,7 @@ export function TechniciansPage() {
       priority: "high",
       status: "approved",
       createdAt: "2024-01-15T09:15:00Z",
-      aiAgent: "ElectricalAI"
+      aiAgent: "Electrical Dispatch"
     },
     {
       id: "3",
@@ -199,7 +198,7 @@ export function TechniciansPage() {
       priority: "medium",
       status: "rejected",
       createdAt: "2024-01-15T08:45:00Z",
-      aiAgent: "CarpentryAI"
+      aiAgent: "Carpentry Dispatch"
     }
   ];
 
@@ -462,7 +461,7 @@ export function TechniciansPage() {
             <h2 className="text-2xl font-bold">AI Suggestions</h2>
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5 text-blue-600" />
-              <span className="text-sm text-muted-foreground">AI Agent Recommendations</span>
+              <span className="text-sm text-muted-foreground">Automated Dispatch Recommendations</span>
             </div>
           </div>
 
@@ -681,7 +680,7 @@ export function TechniciansPage() {
             <Alert>
               <Bot className="h-4 w-4" />
               <AlertDescription>
-                This complaint will be sent to the manager and AI agent for technician assignment.
+                This complaint will be sent to the manager and automated dispatch system for technician assignment.
               </AlertDescription>
             </Alert>
 

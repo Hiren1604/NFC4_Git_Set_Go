@@ -13,7 +13,7 @@ router.post('/register', [
   body('email').isEmail().normalizeEmail().withMessage('Please enter a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   body('phone').notEmpty().withMessage('Phone number is required'),
-  body('role').isIn(['resident', 'admin', 'technician']).withMessage('Invalid role'),
+  body('role').isIn(['resident', 'technician']).withMessage('Public registration permits resident or technician accounts only'),
   body('flatNumber').if(body('role').equals('resident')).notEmpty().withMessage('Flat number is required for residents'),
   body('building').if(body('role').equals('resident')).notEmpty().withMessage('Building is required for residents')
 ], async (req, res) => {

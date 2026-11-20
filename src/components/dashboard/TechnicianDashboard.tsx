@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+import { GlassmorphicBentoDashboard } from "./GlassmorphicBentoDashboard";
 import {
   Wrench,
   Clock,
@@ -20,421 +22,488 @@ import {
   Settings,
   AlertCircle,
   Timer,
+  Bot,
+  Zap,
+  DollarSign,
+  TrendingUp,
+  Award,
+  Layers,
+  ArrowRight,
+  ShieldCheck,
 } from "lucide-react";
 
-export function TechnicianDashboard() {
-  const [selectedTab, setSelectedTab] = useState("tasks");
-  const [availability, setAvailability] = useState(true);
+interface TechnicianDashboardProps {
+  defaultTab?: string;
+}
 
-  // Mock data
-  const assignedTasks = [
+export function TechnicianDashboard({ defaultTab = "tasks" }: TechnicianDashboardProps) {
+  const [selectedTab, setSelectedTab] = useState(defaultTab);
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [tasks, setTasks] = useState([
     {
-      id: 1,
-      title: "Water leakage in A-501",
-      priority: "urgent",
-      location: "Building A, Floor 5",
-      resident: "John Doe",
-      estimatedTime: "2 hours",
-      status: "in-progress",
-      distance: "0.5 km",
-    },
-    {
-      id: 2,
-      title: "Electrical outlet not working",
-      priority: "high",
-      location: "Building B, Floor 3",
-      resident: "Jane Smith",
-      estimatedTime: "1 hour",
-      status: "pending",
-      distance: "1.2 km",
-    },
-    {
-      id: 3,
-      title: "Door lock repair",
-      priority: "medium",
-      location: "Building A, Floor 2",
-      resident: "Mike Johnson",
+      id: 101,
+      ticketId: "ISS-401",
+      title: "Master bathroom flush tank leak",
+      priority: "urgent" as const,
+      category: "Plumbing",
+      location: "Tower A • Flat 501",
+      resident: "Sarah Johnson",
+      phone: "+91 98765 43210",
       estimatedTime: "45 mins",
-      status: "scheduled",
-      distance: "0.3 km",
+      status: "in-progress" as "pending" | "in-progress" | "completed",
+      distance: "Within Tower A",
+      aiReasoning: "AI matched: Qualified in plumbing, currently on-site in Tower A, lowest response latency.",
+      reportedAt: "25 mins ago",
     },
-  ];
+    {
+      id: 102,
+      ticketId: "ISS-402",
+      title: "Tripping MCB breaker in kitchen",
+      priority: "high" as const,
+      category: "Electrical",
+      location: "Tower B • Flat 304",
+      resident: "Amit Verma",
+      phone: "+91 98765 43219",
+      estimatedTime: "1 hour",
+      status: "pending" as "pending" | "in-progress" | "completed",
+      distance: "120m away",
+      aiReasoning: "High priority: Kitchen power outage affects refrigeration. Scheduled right after ISS-401.",
+      reportedAt: "1 hour ago",
+    },
+    {
+      id: 103,
+      ticketId: "ISS-403",
+      title: "Clubhouse gym treadmill wiring",
+      priority: "medium" as const,
+      category: "Electrical",
+      location: "Clubhouse • Level 1",
+      resident: "Estate Manager",
+      phone: "+91 98765 43200",
+      estimatedTime: "30 mins",
+      status: "pending" as "pending" | "in-progress" | "completed",
+      distance: "250m away",
+      aiReasoning: "Non-critical community equipment. Flexible afternoon window.",
+      reportedAt: "3 hours ago",
+    },
+  ]);
+
+  const handleStartTask = (taskId: number) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: "in-progress" } : t))
+    );
+  };
+
+  const handleCompleteTask = (taskId: number) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: "completed" } : t))
+    );
+  };
 
   const completedTasks = [
     {
       id: 1,
-      title: "AC repair in B-301",
-      completedAt: "2024-01-10 15:30",
+      ticketId: "ISS-388",
+      title: "HVAC cooling coil pressure tune",
+      completedAt: "Today, 11:30 AM",
+      resident: "David Miller (C-702)",
       rating: 5,
-      feedback: "Excellent work! Very professional.",
-      timeSpent: "1.5 hours",
+      feedback: "Arrived in 10 minutes, fixed the issue cleanly. Highly professional!",
+      earnings: 750,
+      duration: "40 mins",
     },
     {
       id: 2,
-      title: "Plumbing fix in A-402",
-      completedAt: "2024-01-09 11:20",
-      rating: 4,
-      feedback: "Good job, quick resolution.",
-      timeSpent: "2 hours",
+      ticketId: "ISS-384",
+      title: "Basement drainage sump pump valve",
+      completedAt: "Yesterday, 4:15 PM",
+      resident: "Society Admin",
+      rating: 5,
+      feedback: "Critical preventative fix before heavy monsoon rains.",
+      earnings: 1200,
+      duration: "1 hr 15 mins",
     },
   ];
 
-  const todaySchedule = [
-    { time: "09:00", task: "Water leakage - A-501", status: "in-progress" },
-    { time: "11:00", task: "Electrical issue - B-303", status: "pending" },
-    { time: "14:00", task: "Door repair - A-201", status: "scheduled" },
-    { time: "16:00", task: "AC maintenance - C-501", status: "scheduled" },
-  ];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending": return "bg-yellow-100 text-yellow-800";
-      case "in-progress": return "bg-blue-100 text-blue-800";
-      case "completed": return "bg-green-100 text-green-800";
-      case "scheduled": return "bg-purple-100 text-purple-800";
-      case "urgent": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "urgent": return "text-red-600 font-semibold";
-      case "high": return "text-orange-600 font-semibold";
-      case "medium": return "text-blue-600 font-semibold";
-      case "low": return "text-green-600 font-semibold";
-      default: return "text-gray-600";
-    }
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl mx-auto">
+      {/* Top Technician Status Hero Bar (Glassmorphic Bento) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl p-5 shadow-xs relative overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+        <div className="flex items-center gap-3.5">
+          <Avatar className="h-12 w-12 ring-2 ring-primary/30 shadow-xs">
+            <AvatarFallback className="bg-primary text-primary-foreground font-black text-base">
+              MW
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg font-bold text-foreground">Mike Wilson</h2>
+              <Badge
+                variant={isAvailable ? "default" : "secondary"}
+                className={isAvailable ? "bg-emerald-500 hover:bg-emerald-600 text-white font-mono text-[10px]" : "font-mono text-[10px]"}
+              >
+                {isAvailable ? "Available for Dispatch" : "Offline / On Break"}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground font-mono mt-0.5">
+              Lead Technician • Plumbing & Electrical • Base Rate: ₹500/hr
+            </p>
+          </div>
+        </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50 to-white">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-900">Today's Tasks</CardTitle>
-            <Wrench className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-900">5</div>
-            <p className="text-xs text-blue-600">2 completed, 3 pending</p>
+        {/* Tactical Availability Switch */}
+        <div className="flex items-center gap-3 rounded-xl border border-border/80 bg-secondary/50 px-3.5 py-2">
+          <span className="text-xs font-medium text-foreground">Duty Status:</span>
+          <div className="flex items-center gap-2">
+            <Switch checked={isAvailable} onCheckedChange={setIsAvailable} />
+            <span className="text-xs font-mono font-bold text-primary">
+              {isAvailable ? "ONLINE" : "OFFLINE"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Cards (Tactical Glassmorphic Bento) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs hover:shadow-md hover:border-primary/40 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent" />
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex items-center justify-between text-muted-foreground text-xs font-medium mb-1">
+              <span>Active Queue</span>
+              <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                <Wrench className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-foreground">
+              {tasks.filter((t) => t.status !== "completed").length}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">1 in progress, 2 pending</p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-yellow-500 bg-gradient-to-r from-yellow-50 to-white">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-yellow-900">Average Rating</CardTitle>
-            <Star className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-900">4.8</div>
-            <p className="text-xs text-yellow-600">Based on 24 reviews</p>
+        <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs hover:shadow-md hover:border-primary/40 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent" />
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex items-center justify-between text-muted-foreground text-xs font-medium mb-1">
+              <span>Customer Rating</span>
+              <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
+                <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-foreground">4.92</div>
+            <p className="text-[11px] text-emerald-600 font-medium mt-1">Top 5% in society</p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-green-500 bg-gradient-to-r from-green-50 to-white">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-900">Response Time</CardTitle>
-            <Clock className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-900">15m</div>
-            <p className="text-xs text-green-600">Average this month</p>
+        <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs hover:shadow-md hover:border-primary/40 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent" />
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex items-center justify-between text-muted-foreground text-xs font-medium mb-1">
+              <span>Avg Turnaround</span>
+              <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-500">
+                <Timer className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-foreground">38m</div>
+            <p className="text-[11px] text-muted-foreground mt-1">Target: &lt; 45 mins</p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-purple-500 bg-gradient-to-r from-purple-50 to-white">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-purple-900">Efficiency</CardTitle>
-            <BarChart3 className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-900">94%</div>
-            <Progress value={94} className="mt-2" />
+        <Card className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-xs hover:shadow-md hover:border-primary/40 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent" />
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex items-center justify-between text-muted-foreground text-xs font-medium mb-1">
+              <span>Today's Payout</span>
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+                <DollarSign className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-foreground">₹2,450</div>
+            <p className="text-[11px] text-muted-foreground mt-1">3 jobs logged today</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content Tabs */}
+      {/* Responsive Tabs Navigation */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="tasks">My Tasks</TabsTrigger>
-          <TabsTrigger value="schedule">Schedule</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-          <TabsTrigger value="availability">Availability</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto no-scrollbar -mx-2 px-2 pb-1">
+          <TabsList className="inline-flex w-auto min-w-full sm:min-w-0 sm:w-auto p-1 bg-secondary/60 rounded-xl border border-border/60 gap-1 backdrop-blur-md">
+            <TabsTrigger value="tasks" className="text-xs shrink-0 px-3 py-1.5">My Tasks ({tasks.length})</TabsTrigger>
+            <TabsTrigger value="bento" className="text-xs shrink-0 px-3 py-1.5 font-bold text-primary">⚡ Tactical Radar</TabsTrigger>
+            <TabsTrigger value="schedule" className="text-xs shrink-0 px-3 py-1.5">Route & Schedule</TabsTrigger>
+            <TabsTrigger value="completed" className="text-xs shrink-0 px-3 py-1.5">Completed Jobs</TabsTrigger>
+            <TabsTrigger value="performance" className="text-xs shrink-0 px-3 py-1.5">Performance & Payout</TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value="tasks" className="space-y-6">
-          <div className="space-y-4">
-            {assignedTasks.map((task) => (
-              <Card key={task.id}>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-3 flex-1">
-                      <div className="flex items-center gap-3">
-                        <h3 className="font-semibold text-lg">{task.title}</h3>
-                        <Badge className={getPriorityColor(task.priority)}>
+        {/* Tab 1: My Tasks */}
+        <TabsContent value="tasks" className="space-y-4 pt-2">
+          {tasks.map((task) => {
+            const isUrgent = task.priority === "urgent";
+            const inProgress = task.status === "in-progress";
+            const isCompleted = task.status === "completed";
+
+            return (
+              <Card
+                key={task.id}
+                className={`rounded-2xl border backdrop-blur-xl transition-all relative overflow-hidden shadow-xs ${
+                  inProgress
+                    ? "border-primary/60 bg-primary/5 ring-1 ring-primary/30"
+                    : isCompleted
+                    ? "opacity-65 bg-muted/40 border-border/60"
+                    : "border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 hover:border-primary/40 hover:shadow-md"
+                }`}
+              >
+                <div className={`absolute top-0 inset-x-0 h-px ${inProgress ? "bg-primary" : "bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent"}`} />
+                <CardContent className="p-5">
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                    <div className="space-y-2 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-muted-foreground">
+                          {task.ticketId}
+                        </span>
+                        <h3 className="font-bold text-base text-foreground">{task.title}</h3>
+                        <Badge
+                          variant={isUrgent ? "destructive" : "secondary"}
+                          className="text-[10px] uppercase font-mono tracking-wider"
+                        >
                           {task.priority}
                         </Badge>
-                        <Badge className={getStatusColor(task.status)}>
-                          {task.status}
+                        <Badge variant="outline" className="text-[10px]">
+                          {task.category}
                         </Badge>
+                        {inProgress && (
+                          <Badge className="bg-primary text-white text-[10px] animate-pulse">
+                            In Progress
+                          </Badge>
+                        )}
+                        {isCompleted && (
+                          <Badge className="bg-emerald-500 text-white text-[10px]">
+                            Resolved
+                          </Badge>
+                        )}
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          {task.location}
+
+                      {/* Location & Resident Details */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5 font-medium text-foreground">
+                          <MapPin className="h-3.5 w-3.5 text-primary" />
+                          <span>{task.location}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Timer className="h-4 w-4" />
-                          Est. {task.estimatedTime}
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>Est. Duration: {task.estimatedTime}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Navigation className="h-4 w-4" />
-                          {task.distance} away
+                        <div className="flex items-center gap-1.5">
+                          <Navigation className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>{task.distance}</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback>{task.resident.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm">{task.resident}</span>
+                      {/* AI Matching Reasoning */}
+                      <div className="flex items-start gap-2 rounded-lg bg-background p-2.5 border border-border/80 text-xs">
+                        <Bot className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                        <p className="text-muted-foreground leading-relaxed">
+                          <strong className="text-foreground font-medium">Auto-Dispatch Match: </strong>
+                          {task.aiReasoning}
+                        </p>
+                      </div>
+
+                      <div className="text-xs text-muted-foreground">
+                        Resident Contact: <span className="text-foreground font-medium">{task.resident}</span> ({task.phone})
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-2 ml-4">
-                      <Button size="sm">
-                        <Phone className="h-4 w-4" />
+                    {/* Operational Action Controls */}
+                    <div className="flex flex-row md:flex-col gap-2 shrink-0">
+                      <a
+                        href={`tel:${task.phone}`}
+                        className="inline-flex items-center justify-center rounded-lg border border-border bg-secondary/80 hover:bg-secondary px-3 py-2 text-xs font-medium text-foreground transition-colors"
+                      >
+                        <Phone className="h-3.5 w-3.5 mr-1.5 text-primary" />
                         Call
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Navigation className="h-4 w-4" />
-                        Navigate
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Camera className="h-4 w-4" />
-                        Photo
-                      </Button>
-                      {task.status === "pending" && (
-                        <Button size="sm" className="bg-status-progress">
-                          Start Task
+                      </a>
+
+                      {!isCompleted && !inProgress && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleStartTask(task.id)}
+                          className="bg-primary hover:bg-primary/90 text-white"
+                        >
+                          <Zap className="h-3.5 w-3.5 mr-1.5" />
+                          Start Job
                         </Button>
                       )}
-                      {task.status === "in-progress" && (
-                        <Button size="sm" className="bg-status-resolved">
-                          <CheckCircle className="h-4 w-4" />
-                          Complete
+
+                      {inProgress && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleCompleteTask(task.id)}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                          <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                          Complete & Close
+                        </Button>
+                      )}
+
+                      {isCompleted && (
+                        <Button size="sm" variant="outline" disabled className="text-xs">
+                          Closed
                         </Button>
                       )}
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            );
+          })}
         </TabsContent>
 
-        <TabsContent value="schedule" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Today's Schedule
+        {/* Tab 2: Schedule & Route */}
+        <TabsContent value="schedule" className="space-y-4 pt-2">
+          <Card className="border-border">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Navigation className="h-4 w-4 text-primary" />
+                AI Smart Route Sequence (Emerald Heights)
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {todaySchedule.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-4 p-3 rounded-lg border">
-                    <div className="text-center min-w-[60px]">
-                      <p className="font-medium">{item.time}</p>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium">{item.task}</p>
-                    </div>
-                    <Badge className={getStatusColor(item.status)}>
-                      {item.status}
-                    </Badge>
-                  </div>
-                ))}
+            <CardContent className="space-y-4">
+              <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 text-xs text-primary flex items-center justify-between">
+                <span>
+                  ⚡ Optimal route calculated: Saves 25 mins of walking between Tower A and Tower B.
+                </span>
+                <Badge variant="outline" className="border-primary/40 text-primary">
+                  Sequence: A501 → B304 → Clubhouse
+                </Badge>
               </div>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Route Optimization</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between p-4 bg-primary-light rounded-lg">
-                <div>
-                  <p className="font-medium">Optimized Route Available</p>
-                  <p className="text-sm text-gray-600">Save 45 minutes on today's tasks</p>
+              <div className="relative border-l-2 border-border ml-3 pl-6 space-y-6 text-xs">
+                <div className="relative">
+                  <div className="absolute -left-[31px] top-0 h-3.5 w-3.5 rounded-full bg-primary ring-4 ring-background" />
+                  <span className="font-mono text-muted-foreground">09:30 AM — Now</span>
+                  <p className="font-semibold text-foreground mt-0.5 text-sm">Tower A • Flat 501 (Plumbing)</p>
+                  <p className="text-muted-foreground">Priority repair underway.</p>
                 </div>
-                <Button>
-                  <Navigation className="h-4 w-4" />
-                  View Route
-                </Button>
+
+                <div className="relative">
+                  <div className="absolute -left-[31px] top-0 h-3.5 w-3.5 rounded-full bg-muted-foreground/40 ring-4 ring-background" />
+                  <span className="font-mono text-muted-foreground">10:30 AM — Next</span>
+                  <p className="font-semibold text-foreground mt-0.5 text-sm">Tower B • Flat 304 (MCB Breaker)</p>
+                  <p className="text-muted-foreground">Resident confirmed availability.</p>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute -left-[31px] top-0 h-3.5 w-3.5 rounded-full bg-muted-foreground/40 ring-4 ring-background" />
+                  <span className="font-mono text-muted-foreground">11:45 AM — Follow-up</span>
+                  <p className="font-semibold text-foreground mt-0.5 text-sm">Clubhouse • Treadmill Wiring</p>
+                  <p className="text-muted-foreground">Estate manager inspection scheduled.</p>
+                </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="completed" className="space-y-6">
-          <div className="space-y-4">
-            {completedTasks.map((task) => (
-              <Card key={task.id}>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-3 flex-1">
-                      <div className="flex items-center gap-3">
-                        <h3 className="font-semibold">{task.title}</h3>
-                        <Badge className="bg-status-resolved">
-                          Completed
-                        </Badge>
-                      </div>
-                      
-                      <div className="text-sm text-gray-600">
-                        <p>Completed: {task.completedAt}</p>
-                        <p>Time spent: {task.timeSpent}</p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1">
-                          {[...Array(5)].map((_, i) => (
-                            <Star 
-                              key={i} 
-                              className={`h-4 w-4 ${i < task.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
-                            />
-                          ))}
-                        </div>
-                        <span className="text-sm text-gray-600">({task.rating}/5)</span>
-                      </div>
-
-                      {task.feedback && (
-                        <div className="p-3 bg-background-secondary rounded-lg">
-                          <p className="text-sm italic">"{task.feedback}"</p>
-                        </div>
-                      )}
+        {/* Tab 3: Completed Jobs */}
+        <TabsContent value="completed" className="space-y-4 pt-2">
+          {completedTasks.map((job) => (
+            <Card key={job.id} className="border-border">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs text-muted-foreground">{job.ticketId}</span>
+                      <h4 className="font-semibold text-sm text-foreground">{job.title}</h4>
+                      <Badge className="bg-emerald-500 text-white text-[10px]">Paid</Badge>
                     </div>
-
-                    <Button size="sm" variant="outline">
-                      <MessageSquare className="h-4 w-4" />
-                      Contact
-                    </Button>
+                    <p className="text-xs text-muted-foreground">{job.resident} • Finished {job.completedAt}</p>
+                    <p className="text-xs italic text-foreground/80 mt-2 bg-secondary/50 p-2.5 rounded-md">
+                      "{job.feedback}"
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="performance" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>This Month's Performance</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span>Tasks Completed</span>
-                  <span className="font-bold">47</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>Average Rating</span>
-                  <span className="font-bold">4.8/5</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>Response Time</span>
-                  <span className="font-bold">15 min</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>Completion Rate</span>
-                  <span className="font-bold">98%</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Feedback</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {[
-                  { rating: 5, comment: "Excellent work! Very professional." },
-                  { rating: 4, comment: "Quick and efficient service." },
-                  { rating: 5, comment: "Solved the problem immediately." },
-                ].map((feedback, idx) => (
-                  <div key={idx} className="p-3 border rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          className={`h-3 w-3 ${i < feedback.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
-                        />
+                  <div className="text-right">
+                    <span className="font-mono text-base font-bold text-foreground">
+                      +₹{job.earnings}
+                    </span>
+                    <div className="flex items-center gap-0.5 justify-end mt-1">
+                      {[...Array(job.rating)].map((_, i) => (
+                        <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                       ))}
                     </div>
-                    <p className="text-sm">{feedback.comment}</p>
                   </div>
-                ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </TabsContent>
+
+        {/* Tab 4: Performance Analytics */}
+        <TabsContent value="performance" className="space-y-4 pt-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Award className="h-4 w-4 text-primary" />
+                  Monthly Performance Metrics
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 text-xs">
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-muted-foreground">First-Time Fix Rate</span>
+                    <span className="font-bold text-foreground font-mono">94%</span>
+                  </div>
+                  <Progress value={94} className="h-2 bg-secondary" />
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-muted-foreground">On-Time Arrival Rate</span>
+                    <span className="font-bold text-foreground font-mono">98%</span>
+                  </div>
+                  <Progress value={98} className="h-2 bg-secondary" />
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-muted-foreground">Resident Satisfaction</span>
+                    <span className="font-bold text-foreground font-mono">99%</span>
+                  </div>
+                  <Progress value={99} className="h-2 bg-secondary" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-emerald-500" />
+                  Monthly Earnings Ledger
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-xs">
+                <div className="flex justify-between items-center py-1.5 border-b border-border">
+                  <span className="text-muted-foreground">Total Jobs Completed</span>
+                  <span className="font-mono font-bold text-foreground">42 jobs</span>
+                </div>
+                <div className="flex justify-between items-center py-1.5 border-b border-border">
+                  <span className="text-muted-foreground">Billable Hours Logged</span>
+                  <span className="font-mono font-bold text-foreground">68.5 hrs</span>
+                </div>
+                <div className="flex justify-between items-center py-1.5 border-b border-border">
+                  <span className="text-muted-foreground">Society Retainer Bonus</span>
+                  <span className="font-mono font-bold text-emerald-600">+₹5,000</span>
+                </div>
+                <div className="flex justify-between items-center pt-1 font-semibold text-sm">
+                  <span>Net Monthly Payout</span>
+                  <span className="font-mono text-primary font-bold">₹39,250</span>
+                </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        <TabsContent value="availability" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Availability Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <p className="font-medium">Current Status</p>
-                  <p className="text-sm text-gray-600">You are currently {availability ? 'available' : 'offline'}</p>
-                </div>
-                <Button 
-                  variant={availability ? "destructive" : "default"}
-                  onClick={() => setAvailability(!availability)}
-                >
-                  {availability ? "Go Offline" : "Go Online"}
-                </Button>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="font-semibold">Working Hours</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm text-gray-600">Start Time</label>
-                    <div className="mt-1 p-2 border rounded">9:00 AM</div>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">End Time</label>
-                    <div className="mt-1 p-2 border rounded">6:00 PM</div>
-                  </div>
-                </div>
-                <Button variant="outline">Update Schedule</Button>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="font-semibold">Specializations</h3>
-                <div className="flex flex-wrap gap-2">
-                  {["Electrical", "Plumbing", "HVAC", "Carpentry"].map((skill) => (
-                    <Badge key={skill} variant="secondary">{skill}</Badge>
-                  ))}
-                </div>
-                <Button variant="outline">Manage Skills</Button>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Tab 5: Glassmorphic Bento Grid (Inspo 5 Architecture) */}
+        <TabsContent value="bento" className="pt-2">
+          <GlassmorphicBentoDashboard />
         </TabsContent>
       </Tabs>
     </div>

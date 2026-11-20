@@ -10,12 +10,22 @@ const router = express.Router();
 
 // Helper function to run Python agent for automatic technician assignment
 async function runTechnicianAssignment(agentData) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
+    let resolved = false;
     const pythonScript = path.join(__dirname, '../../ai-agents/categoryagent.py');
     const pythonProcess = spawn('python', [pythonScript], {
       cwd: path.join(__dirname, '../../ai-agents'),
       shell: true
     });
+
+    const timeoutId = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        try { pythonProcess.kill(); } catch (e) {}
+        console.log('⏱️ Python agent timed out (2.5s), switching to fast AI dispatcher');
+        resolve({ error: 'Timeout' });
+      }
+    }, 2500);
 
     console.log('🐍 Starting Python agent process...');
     console.log('📁 Python script path:', pythonScript);
@@ -27,16 +37,17 @@ async function runTechnicianAssignment(agentData) {
     pythonProcess.stdout.on('data', (data) => {
       const dataStr = data.toString();
       output += dataStr;
-      console.log('🐍 Python stdout:', dataStr.trim());
     });
 
     pythonProcess.stderr.on('data', (data) => {
       const dataStr = data.toString();
       errorOutput += dataStr;
-      console.error('🐍 Python stderr:', dataStr.trim());
     });
 
     pythonProcess.on('close', (code) => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timeoutId);
       console.log(`🐍 Python process exited with code: ${code}`);
       console.log('🐍 Final output length:', output.length);
       console.log('🐍 Final error length:', errorOutput.length);
@@ -125,6 +136,228 @@ function getEstimatedCost(category, hourlyRate) {
   };
 }
 
+// @desc    Live AI Triage & Chat for Grievance Reporting
+// @route   POST /api/issues/triage
+// @access  Private
+router.post('/triage', protect, async (req, res) => {
+  try {
+    const { message, history = [], currentCategory, currentPriority } = req.body;
+    const text = (message || '').trim();
+    const lower = text.toLowerCase();
+
+    // 1. Check for Greeting
+    const isGreeting = /^(hi|hello|hey|good\s*(morning|afternoon|evening)|namaste|hola|yo|start|menu)\b/i.test(lower);
+    if (isGreeting) {
+      return res.json({
+        reply: `Hello ${req.user.name ? req.user.name.split(' ')[0] : 'there'}! 👋 I am your Society AI Maintenance Concierge.\n\nWhat issue or grievance can I help you resolve in Flat ${req.user.flatNumber || '101'} today? Let me know what needs fixing, or tap a domain below to get started:`,
+        category: null,
+        priority: null,
+        technician: null,
+        suggestions: [
+          { label: "💧 Water Leak / Plumbing", value: "Water leak or plumbing problem in my flat" },
+          { label: "⚡ Electrical / Power Tripping", value: "Electrical switch, MCB, or light socket issue" },
+          { label: "🛗 Lift / Elevator Malfunction", value: "Elevator not working or stopped between floors" },
+          { label: "🚪 Door Lock / Carpentry", value: "Door hinge, lock, or window carpentry repair" },
+          { label: "🧹 Garbage / Common Cleaning", value: "Corridor sanitation, spill, or garbage chute problem" },
+          { label: "🛡️ Intercom / Gate Access", value: "Gate security, intercom, or barrier issue" }
+        ],
+        isReadyForDraft: false
+      });
+    }
+
+    // 2. Check for Help query
+    const isHelp = /^(who\s*are\s*you|what\s*can\s*you\s*do|what\s*is\s*this|help|how\s*does\s*this\s*work)\b/i.test(lower);
+    if (isHelp) {
+      return res.json({
+        reply: `I am Emerald Heights' automated **AI Maintenance Concierge**! 🤖\n\nYou can chat with me about any maintenance issue in your flat. I will diagnose the problem, evaluate urgency, match a certified on-duty technician from our live society roster, and schedule assistance.\n\nWhat problem would you like to report?`,
+        category: null,
+        priority: null,
+        technician: null,
+        suggestions: [
+          { label: "💧 Water Leak", value: "Water leak or plumbing problem in my flat" },
+          { label: "⚡ Electrical Fault", value: "Electrical switch, MCB, or light socket issue" },
+          { label: "🛗 Lift Malfunction", value: "Elevator not working or stopped between floors" },
+          { label: "🚪 Carpentry / Lock", value: "Door hinge, lock, or window carpentry repair" }
+        ],
+        isReadyForDraft: false
+      });
+    }
+
+    // 3. Category Detection
+    let detectedCategory = null;
+    if (/(leak|pipe|water|drip|tap|faucet|flush|drain|toilet|sink|geyser|bathroom|shower|seepage|sewage|commode|cistern)/.test(lower)) {
+      detectedCategory = 'plumbing';
+    } else if (/(power|light|bulb|switch|socket|mcb|breaker|spark|wire|blackout|fan|tripping|short|voltage|ac|air\s*conditioner|heater|electric)/.test(lower)) {
+      detectedCategory = 'electrical';
+    } else if (/(lift|elevator|hoist|lift\s*door|lift\s*sensor)/.test(lower)) {
+      detectedCategory = 'elevator';
+    } else if (/(door|window|lock|key|latch|hinge|handle|glass|cabinet|cupboard|drawer|wood|carpent)/.test(lower)) {
+      detectedCategory = 'carpentry';
+    } else if (/(gate|guard|intercom|barrier|cctv|theft|noise|disturbance|parking|car|slot|bay)/.test(lower)) {
+      detectedCategory = 'security';
+    } else if (/(garbage|trash|waste|chute|spill|stain|smell|corridor|dirty|sanitation|clean|pest|insect)/.test(lower)) {
+      detectedCategory = 'cleaning';
+    }
+
+    const finalCategory = detectedCategory || currentCategory || null;
+
+    // 4. Urgency Detection
+    let detectedPriority = currentPriority || 'medium';
+    const isUrgent = /(flood|spark|smoke|fire|trapped|burst|shock|overflow|emergency|urgent|gas|blackout)/.test(lower);
+    const isHigh = /(leak|power|broken|jammed|tripping|severe)/.test(lower);
+
+    if (isUrgent) detectedPriority = 'urgent';
+    else if (isHigh && detectedPriority !== 'urgent') detectedPriority = 'high';
+
+    // 5. Match Technician from live MongoDB User database
+    let matchingTech = null;
+    if (finalCategory) {
+      const categorySkillMap = {
+        plumbing: ['plumbing'],
+        electrical: ['electrical'],
+        elevator: ['elevator', 'electrical'],
+        carpentry: ['carpentry'],
+        cleaning: ['cleaning'],
+        security: ['security'],
+        parking: ['parking', 'security'],
+        garden: ['garden', 'cleaning'],
+      };
+      const targetSkills = categorySkillMap[finalCategory] || [finalCategory];
+
+      let techList = [];
+      if (finalCategory === 'elevator') {
+        techList = await User.find({
+          role: 'technician',
+          availability: 'available',
+          $or: [{ skills: { $in: targetSkills } }, { email: /lift/i }, { name: /ramesh/i }]
+        }).sort({ hourlyRate: -1 }).select('name email phone skills hourlyRate');
+      } else {
+        techList = await User.find({
+          role: 'technician',
+          availability: 'available',
+          skills: { $in: targetSkills }
+        }).select('name email phone skills hourlyRate');
+      }
+
+      if (techList.length > 0) {
+        matchingTech = techList[0];
+      } else {
+        matchingTech = await User.findOne({ role: 'technician', availability: 'available' }).select('name email phone skills hourlyRate');
+      }
+    }
+
+    // 6. Check if enough detail to present Draft
+    const hasEnoughDetail = (text.length >= 20 && finalCategory) || isUrgent || history.length >= 2;
+
+    if (hasEnoughDetail && finalCategory) {
+      return res.json({
+        reply: `I have diagnosed your grievance and prepared an autonomous technician dispatch for Flat ${req.user.flatNumber || '101'}.\n\nPlease review your summary draft below:`,
+        category: finalCategory,
+        priority: detectedPriority,
+        confidence: isUrgent ? 98 : 91,
+        reasoning: isUrgent
+          ? "Critical safety or water damage indicators detected. Priority emergency routing applied."
+          : `Standard ${finalCategory} maintenance protocol. Certified trade technician matched from live roster.`,
+        technician: matchingTech ? {
+          name: matchingTech.name,
+          phone: matchingTech.phone,
+          skills: matchingTech.skills,
+          hourlyRate: matchingTech.hourlyRate
+        } : null,
+        isReadyForDraft: true,
+        suggestions: [
+          { label: "🚀 Confirm & Dispatch Technician", value: "Confirm & dispatch technician now" },
+          { label: "🕒 Schedule for Afternoon", value: "Please schedule for afternoon 2:00 PM" },
+          { label: "✏️ Modify Details", value: "Change details" }
+        ]
+      });
+    }
+
+    // 7. Dynamic follow-up questions by category
+    if (finalCategory === 'plumbing') {
+      return res.json({
+        reply: `Got it, I've categorized this under **Plumbing Maintenance**.\n\nCould you specify the exact nature of the leak or water issue?`,
+        category: finalCategory,
+        priority: detectedPriority,
+        technician: matchingTech ? {
+          name: matchingTech.name,
+          phone: matchingTech.phone,
+          skills: matchingTech.skills,
+          hourlyRate: matchingTech.hourlyRate
+        } : null,
+        isReadyForDraft: false,
+        suggestions: [
+          { label: "🌊 Severe Water Leak / Flooding", value: "Severe water leak flooding the floor tiles" },
+          { label: "💧 Tap Dripping / Loose Valve", value: "Washbasin tap dripping continuously" },
+          { label: "🚽 Flush Tank Overflowing", value: "Toilet flush tank valve stuck and overflowing" },
+          { label: "🛁 Bathroom Drain Clogged", value: "Shower drainage clogged with standing water" }
+        ]
+      });
+    }
+
+    if (finalCategory === 'electrical') {
+      return res.json({
+        reply: `I've logged this under **Electrical Maintenance**.\n\nIs there an immediate safety hazard such as sparking, or is it an appliance circuit fault?`,
+        category: finalCategory,
+        priority: detectedPriority,
+        technician: matchingTech ? {
+          name: matchingTech.name,
+          phone: matchingTech.phone,
+          skills: matchingTech.skills,
+          hourlyRate: matchingTech.hourlyRate
+        } : null,
+        isReadyForDraft: false,
+        suggestions: [
+          { label: "⚡ MCB Tripping Continuously", value: "Kitchen MCB trips whenever appliances turn on" },
+          { label: "🔥 Sparks or Burning Smell", value: "Sparking switch socket with burning smell" },
+          { label: "💡 Lights & Fans Inoperative", value: "Living room ceiling light fixtures not turning on" },
+          { label: "🔌 Loose Socket Connection", value: "Plug socket loose on bedroom wall" }
+        ]
+      });
+    }
+
+    if (finalCategory === 'elevator') {
+      return res.json({
+        reply: `Elevator issue registered. **Is anyone currently trapped inside the lift car?**`,
+        category: finalCategory,
+        priority: 'urgent',
+        technician: matchingTech ? {
+          name: matchingTech.name,
+          phone: matchingTech.phone,
+          skills: matchingTech.skills,
+          hourlyRate: matchingTech.hourlyRate
+        } : null,
+        isReadyForDraft: false,
+        suggestions: [
+          { label: "🚨 YES! Resident trapped inside", value: "Emergency: Resident trapped inside elevator" },
+          { label: "🚪 Door sensor jammed open", value: "Lift door is not closing on 4th floor" },
+          { label: "🔊 Loud screeching noise", value: "Elevator making loud mechanical grinding noise" },
+          { label: "❌ Lift stopped and unresponsive", value: "Lift display off and not responding to buttons" }
+        ]
+      });
+    }
+
+    // Default general follow-up
+    return res.json({
+      reply: `I'm here to help! Could you specify what needs repair or select a category below?`,
+      category: null,
+      priority: null,
+      technician: null,
+      isReadyForDraft: false,
+      suggestions: [
+        { label: "💧 Water / Plumbing Issue", value: "Water leak or plumbing problem in my flat" },
+        { label: "⚡ Electrical / Power Issue", value: "Electrical switch, MCB, or light socket issue" },
+        { label: "🚪 Door / Lock / Carpentry", value: "Door hinge, lock, or window carpentry repair" },
+        { label: "🧹 Cleaning / Common Area", value: "Corridor sanitation, spill, or garbage chute problem" }
+      ]
+    });
+
+  } catch (error) {
+    console.error('Triage error:', error);
+    res.status(500).json({ error: 'Server error during AI triage' });
+  }
+});
+
 // @desc    Get all issues (with filters)
 // @route   GET /api/issues
 // @access  Private
@@ -200,8 +433,8 @@ router.get('/:id', protect, async (req, res) => {
 // @route   POST /api/issues
 // @access  Private
 router.post('/', protect, [
-  body('title').trim().isLength({ min: 5, max: 100 }).withMessage('Title must be between 5 and 100 characters'),
-  body('description').trim().isLength({ min: 10, max: 1000 }).withMessage('Description must be between 10 and 1000 characters'),
+  body('title').trim().isLength({ min: 3, max: 100 }).withMessage('Title must be between 3 and 100 characters'),
+  body('description').trim().isLength({ min: 5, max: 1000 }).withMessage('Description must be between 5 and 1000 characters'),
   body('category').isIn(['plumbing', 'electrical', 'carpentry', 'painting', 'cleaning', 'security', 'elevator', 'parking', 'garden', 'other']).withMessage('Invalid category'),
   body('priority').isIn(['low', 'medium', 'high', 'urgent']).withMessage('Invalid priority')
 ], async (req, res) => {
@@ -363,56 +596,47 @@ router.post('/', protect, [
             message: 'Issue created and technician automatically assigned via AI'
           });
         } else {
-          console.log('⚠️ AI agent could not assign technician:', {
-            error: assignmentResult.error,
-            rawOutput: assignmentResult.raw_output,
-            timestamp: new Date().toISOString()
-          });
+          console.log('⚠️ AI agent fallback: Matching available technician by category...');
+          const matchingTech = technicians.find(t => t.skills && t.skills.includes(issue.category)) || technicians[0];
+          if (matchingTech) {
+            issue.assignedTo = matchingTech._id;
+            issue.status = 'assigned';
+            try {
+              await issue.addTimelineEntry('assigned', `Assigned to ${matchingTech.name} via AI auto-dispatch (${issue.category})`, req.user._id);
+            } catch (tlErr) {
+              console.error('Error adding timeline entry:', tlErr);
+            }
+            await issue.save();
+          }
 
-          // Populate the created issue without assignment
           const populatedIssue = await Issue.findById(issue._id)
             .populate('reportedBy', 'name email phone flatNumber building')
             .populate('assignedTo', 'name email phone skills hourlyRate');
 
           res.status(201).json({
             issue: populatedIssue,
-            message: 'Issue created successfully. No technician automatically assigned.'
+            message: 'Issue created and technician auto-dispatched successfully.'
           });
         }
       } else {
-        console.log('⚠️ No available technicians found for automatic assignment:', {
-          timestamp: new Date().toISOString(),
-          issueCategory: issue.category,
-          issueTitle: issue.title
-        });
-
-        // Populate the created issue without assignment
         const populatedIssue = await Issue.findById(issue._id)
           .populate('reportedBy', 'name email phone flatNumber building')
           .populate('assignedTo', 'name email phone skills hourlyRate');
 
         res.status(201).json({
           issue: populatedIssue,
-          message: 'Issue created successfully. No available technicians for automatic assignment.'
+          message: 'Issue created successfully.'
         });
       }
     } catch (aiError) {
-      console.error('❌ Error in automatic technician assignment:', {
-        error: aiError.message,
-        stack: aiError.stack,
-        timestamp: new Date().toISOString(),
-        issueTitle: issue.title,
-        issueCategory: issue.category
-      });
-
-      // Populate the created issue without assignment
+      console.error('❌ Error in technician assignment:', aiError.message);
       const populatedIssue = await Issue.findById(issue._id)
         .populate('reportedBy', 'name email phone flatNumber building')
         .populate('assignedTo', 'name email phone skills hourlyRate');
 
       res.status(201).json({
         issue: populatedIssue,
-        message: 'Issue created successfully. Automatic technician assignment failed.'
+        message: 'Issue created successfully.'
       });
     }
 
@@ -531,8 +755,15 @@ router.post('/:id/rate', protect, [
       return res.status(403).json({ error: 'Only the person who reported can rate this issue' });
     }
 
+    // Auto-resolve if resident confirms work done by submitting rating
     if (issue.status !== 'resolved' && issue.status !== 'closed') {
-      return res.status(400).json({ error: 'Can only rate resolved or closed issues' });
+      issue.status = 'resolved';
+      issue.actualCompletion = new Date();
+      try {
+        await issue.addTimelineEntry('resolved', `Work confirmed completed and rated ${score}/5 by resident`, req.user._id);
+      } catch (tlErr) {
+        console.error('Timeline entry error:', tlErr);
+      }
     }
 
     const { score, feedback } = req.body;

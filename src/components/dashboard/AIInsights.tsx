@@ -59,8 +59,8 @@ export function AIInsights() {
       id: "1",
       type: "decision",
       title: "Elevated Water Leakage Priority",
-      description: "AI Priority Agent identified water leakage as URGENT due to safety hazards and potential vehicle damage. Issue moved to top of queue.",
-      agent: "Priority Agent",
+      description: "Automated triage system identified water leakage as URGENT due to safety hazards and potential vehicle damage. Issue moved to top of queue.",
+      agent: "Triage Engine",
       timestamp: "2 minutes ago",
       impact: "high",
       confidence: 95,
@@ -76,8 +76,8 @@ export function AIInsights() {
       id: "2",
       type: "pattern",
       title: "Electrical Issues Pattern Detected",
-      description: "AI Analytics Agent identified 3 electrical issues in Tower A this week, suggesting potential infrastructure problems.",
-      agent: "Analytics Agent",
+      description: "Predictive analytics identified 3 electrical issues in Tower A this week, suggesting potential infrastructure problems.",
+      agent: "Analytics Engine",
       timestamp: "15 minutes ago",
       impact: "medium",
       confidence: 87,
@@ -93,8 +93,8 @@ export function AIInsights() {
       id: "3",
       type: "optimization",
       title: "Technician Route Optimization",
-      description: "AI Delegation Agent optimized Alex Kumar's route, reducing travel time by 15 minutes for better efficiency.",
-      agent: "Delegation Agent",
+      description: "Smart dispatch system optimized Alex Kumar's route, reducing travel time by 15 minutes for better efficiency.",
+      agent: "Dispatch Engine",
       timestamp: "1 hour ago",
       impact: "medium",
       confidence: 92,
@@ -109,8 +109,8 @@ export function AIInsights() {
       id: "4",
       type: "alert",
       title: "Duplicate Payment Detected",
-      description: "AI Billing Agent detected duplicate payment in maintenance bill for A-501, flagged for admin review.",
-      agent: "Billing Agent",
+      description: "Automated ledger audit detected duplicate payment in maintenance bill for A-501, flagged for admin review.",
+      agent: "Billing Audit",
       timestamp: "1 hour ago",
       impact: "high",
       confidence: 88,
@@ -121,8 +121,8 @@ export function AIInsights() {
       id: "5",
       type: "pattern",
       title: "Peak Maintenance Hours",
-      description: "AI Analytics Agent identified 2-4 PM as peak maintenance request hours, suggesting optimal technician scheduling.",
-      agent: "Analytics Agent",
+      description: "System analytics identified 2-4 PM as peak maintenance request hours, suggesting optimal technician scheduling.",
+      agent: "Analytics Engine",
       timestamp: "3 hours ago",
       impact: "medium",
       confidence: 85,
@@ -137,8 +137,8 @@ export function AIInsights() {
       id: "6",
       type: "optimization",
       title: "Cost Reduction Opportunity",
-      description: "AI Billing Agent analyzed billing patterns and identified 3% cost reduction opportunity in Tower B maintenance.",
-      agent: "Billing Agent",
+      description: "Ledger audit analyzed billing patterns and identified 3% cost reduction opportunity in Tower B maintenance.",
+      agent: "Billing Audit",
       timestamp: "4 hours ago",
       impact: "medium",
       confidence: 90,
@@ -273,7 +273,7 @@ export function AIInsights() {
           <Alert>
             <Sparkles className="h-4 w-4" />
             <AlertDescription>
-              AI agents continuously analyze data to provide intelligent insights and recommendations.
+              Automated systems continuously analyze data to provide intelligent insights and recommendations.
             </AlertDescription>
           </Alert>
 
@@ -333,7 +333,7 @@ export function AIInsights() {
                           <h4 className="font-medium mb-3">Details</h4>
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
-                              <span>Agent:</span>
+                              <span>Service:</span>
                               <span className="font-medium">{insight.agent}</span>
                             </div>
                             <div className="flex justify-between">
